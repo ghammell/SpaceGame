@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orbital Dodge</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="layout">
+    <canvas id="gameCanvas" width="1400" height="800" aria-label="Gameplay canvas"></canvas>
+  </main>
+  <section class="info-row">
+    <button id="toggleInstructions" class="info-button" aria-expanded="false" aria-controls="instructionsOverlay">Show Instructions</button>
+    <button id="toggleHighScores" class="info-button" aria-expanded="false" aria-controls="highScoresOverlay">Show High Scores</button>
+  </section>
+  <section id="instructionsOverlay" class="modal-overlay hidden" aria-label="Instructions">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="summary-title small">Controls & Powerups</div>
+        <button class="modal-close" data-close-target="instructionsOverlay" aria-label="Close instructions">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="summary-title small">Controls</div>
+        <ul class="info-list">
+          <li><strong>Arrow Up / Space</strong>: Thrust</li>
+          <li><strong>Arrow Left/Right</strong>: Strafe (while thrusting)</li>
+          <li><strong>Arrow Down</strong>: Fast drop (while thrusting)</li>
+          <li><strong>F</strong>: Fire blaster when armed</li>
+          <li><strong>Button only</strong>: Start new run (restart button in debrief)</li>
+        </ul>
+        <div class="summary-title small">Powerups</div>
+        <ul class="info-powerups">
+          <li><img class="summary-icon" src="./assets/powerups/heart_plus.svg" alt="Extra life" /> Extra life: gain 1 life</li>
+          <li><img class="summary-icon" src="./assets/powerups/cloak.svg" alt="Cloak" /> Cloak: phase through asteroids</li>
+          <li><img class="summary-icon" src="./assets/powerups/blaster.svg" alt="Blaster" /> Blaster: shoot with F (unlimited while active)</li>
+          <li><img class="summary-icon" src="./assets/powerups/slow.svg" alt="Slow" /> Slow: hazards move slower</li>
+          <li><img class="summary-icon" src="./assets/powerups/multiplier.svg" alt="Multiplier" /> Multiplier: score x2</li>
+          <li><img class="summary-icon" src="./assets/powerups/blackhole.svg" alt="Black hole" /> Black hole: faster hazards, higher time score</li>
+          <li><img class="summary-icon" src="./assets/powerups/solarflare.svg" alt="Solar flare" /> Solar flare: larger hazards, higher time score</li>
+          <li><img class="summary-icon" src="./assets/powerups/wave.svg" alt="Wave" /> Wave: bobbing hazards, higher time score</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+  <section id="highScoresOverlay" class="modal-overlay hidden" aria-label="High scores">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="summary-title small">Top 10</div>
+        <button class="modal-close" data-close-target="highScoresOverlay" aria-label="Close high scores">×</button>
+      </div>
+      <div class="modal-body">
+        <ul id="inlineHighScores" class="summary-list"></ul>
+      </div>
+    </div>
+  </section>
+  <section id="summaryOverlay" class="summary-overlay" aria-label="Game summary">
+    <div class="summary-card">
+      <div class="summary-title">Mission Debrief</div>
+      <div class="summary-grid">
+        <div class="summary-section collapsed" id="scoreSection">
+          <button class="summary-toggle" type="button" aria-expanded="false">
+            <span>Total Score</span>
+            <span class="summary-value" id="summaryScore">0</span>
+            <span class="chevron">▸</span>
+          </button>
+          <div class="summary-details">
+            <div class="summary-row summary-sub">
+              <span><img class="summary-icon" src="./assets/hud-score.svg" alt="Time" />Time score</span>
+              <span id="summaryTimeScore">0</span>
+            </div>
+            <div class="summary-row summary-sub">
+              <span><img class="summary-icon" src="./assets/asteroids/asteroid1.svg" alt="Asteroids" />Destroyed score</span>
+              <span id="summaryDestroyedScore">0</span>
+            </div>
+            <div class="summary-row summary-sub">
+              <span><img class="summary-icon" src="./assets/powerups/cloak.svg" alt="Phased" />Phased score</span>
+              <span id="summaryPhasedScore">0</span>
+            </div>
+            <div class="summary-row summary-sub">
+              <span><img class="summary-icon" src="./assets/powerups/multiplier.svg" alt="Misc" />Misc score</span>
+              <span id="summaryMiscScore">0</span>
+            </div>
+            <div class="summary-row summary-sub">
+              <span><img class="summary-icon" src="./assets/powerups/blackhole.svg" alt="Negative" />Negative bonus</span>
+              <span id="summaryNegativeScore">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="summary-row"><span>Time survived</span><span id="summaryTime">0s</span></div>
+        <div class="summary-row"><span>Powerups collected</span><span id="summaryPowerups">0</span></div>
+
+        <div class="summary-section collapsed" id="uptimeSection">
+          <button class="summary-toggle" type="button" aria-expanded="false">
+            <span>Uptime</span>
+            <span class="chevron">▸</span>
+          </button>
+          <div class="summary-details">
+            <div class="summary-row"><span>Cloak uptime</span><span id="summaryCloak">0s</span></div>
+            <div class="summary-row"><span>Blaster uptime</span><span id="summaryBlaster">0s</span></div>
+            <div class="summary-row"><span>Slow uptime</span><span id="summarySlow">0s</span></div>
+          </div>
+        </div>
+
+      </div>
+      <div class="summary-row name-row">
+        <span>Name</span>
+        <input id="summaryNameInput" class="summary-input" type="text" maxlength="18" placeholder="Your name" />
+      </div>
+      <div class="summary-row save-row">
+        <span>Save score</span>
+        <button id="summarySaveButton" class="summary-button small" aria-label="Save high score">Save</button>
+      </div>
+      <div class="summary-highscores">
+        <div class="summary-title small">Top 10</div>
+        <ul id="summaryHighScores" class="summary-list"></ul>
+      </div>
+      <button id="summaryRestart" class="summary-button" aria-label="Restart run">Start New Run</button>
+    </div>
+  </section>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
+

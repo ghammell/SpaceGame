@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="80" viewBox="0 0 64 80">
+  <defs>
+    <linearGradient id="visorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9ae0ff"/>
+      <stop offset="100%" stop-color="#65a8ff"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#0b1024" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)" transform="translate(4 2)">
+    <rect x="14" y="4" width="28" height="34" rx="10" fill="#f5f7ff" stroke="#cfd7ff" stroke-width="2"/>
+    <rect x="18" y="10" width="20" height="14" rx="6" fill="url(#visorGradient)" stroke="#8bcfff" stroke-width="1.5"/>
+    <rect x="24" y="28" width="8" height="10" rx="3" fill="#ffb454" stroke="#eaa042" stroke-width="1"/>
+    <rect x="8" y="14" width="6" height="16" rx="2" fill="#d9dfff" stroke="#c3c9f7" stroke-width="1.2"/>
+    <rect x="42" y="14" width="6" height="16" rx="2" fill="#d9dfff" stroke="#c3c9f7" stroke-width="1.2"/>
+    <rect x="16" y="38" width="24" height="12" rx="5" fill="#e6ebff" stroke="#cfd7ff" stroke-width="1.4"/>
+    <rect x="10" y="46" width="12" height="18" rx="5" fill="#e6ebff" stroke="#cfd7ff" stroke-width="1.4"/>
+    <rect x="30" y="46" width="12" height="18" rx="5" fill="#e6ebff" stroke="#cfd7ff" stroke-width="1.4"/>
+    <rect x="18" y="58" width="8" height="10" rx="4" fill="#d7defa" stroke="#c3c9f7" stroke-width="1.1"/>
+    <rect x="28" y="58" width="8" height="10" rx="4" fill="#d7defa" stroke="#c3c9f7" stroke-width="1.1"/>
+    <circle cx="12" cy="48" r="5" fill="#a5b8ff" opacity="0.5"/>
+    <circle cx="44" cy="48" r="5" fill="#a5b8ff" opacity="0.5"/>
+  </g>
+</svg>
+
