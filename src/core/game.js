@@ -65,6 +65,10 @@ export class Game {
     this.infiniteLivesEnabled = false;
     this.testModePowerUp = null;
     this.onPauseChange = null;
+    this.uiPadding = 0;
+    this.viewWidth = 0;
+    this.viewHeight = 0;
+    this.renderScale = 1;
     this.isCountdownActive = false;
     this.countdownRemaining = 0;
     this.resetFrameTimestampNextFrame = false;
@@ -81,6 +85,7 @@ export class Game {
     this.powerupCollectedCount = 0;
     this.movementInput = { moveLeft: false, moveRight: false, moveDown: false };
     this.lastFrameTimestamp = 0;
+    this.isTouchPrimaryDevice = this.detectTouchFirstDevice();
 
     this.gameLoop = this.gameLoop.bind(this);
     this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -90,6 +95,42 @@ export class Game {
     window.addEventListener('keydown', this.handleKeyDown);
     window.addEventListener('keyup', this.handleKeyUp);
     window.addEventListener('resize', this.handleResize);
+  }
+
+  // Determines whether the current device is likely touch-first or mobile using capability signals.
+  detectTouchFirstDevice() {
+    if (navigator.userAgentData !== undefined && navigator.userAgentData.mobile === true) {
+      return true;
+    }
+
+    if (typeof navigator.maxTouchPoints === 'number') {
+      if (navigator.maxTouchPoints > 0) {
+        return true;
+      }
+    }
+
+    if (typeof window.matchMedia === 'function') {
+      const coarsePointerQuery = window.matchMedia('(any-pointer: coarse)');
+      if (coarsePointerQuery !== null && coarsePointerQuery.matches === true) {
+        return true;
+      }
+    }
+
+    if ('ontouchstart' in window) {
+      return true;
+    }
+
+    const userAgentSource = navigator.userAgent ?? navigator.vendor ?? window.opera ?? '';
+    if (typeof userAgentSource === 'string') {
+      if (/Mobi/i.test(userAgentSource) === true) {
+        return true;
+      }
+      if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgentSource) === true) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   // Lightweight image loader for overlay assets.
@@ -192,15 +233,33 @@ export class Game {
 
   // Updates cached canvas dimensions and child systems.
   handleResize() {
-    const desiredWidth = Math.min(1400, window.innerWidth * 0.98);
-    const desiredHeight = desiredWidth * (9 / 16);
-    this.canvas.width = desiredWidth;
-    this.canvas.height = desiredHeight;
-    this.player.setCanvasSize(this.canvas.width, this.canvas.height);
-    this.starfield.setCanvasSize(this.canvas.width, this.canvas.height);
-    this.asteroidManager.setCanvasSize(this.canvas.width, this.canvas.height);
-    this.powerUpManager.setCanvasSize(this.canvas.width, this.canvas.height);
-    this.alienManager.setCanvasSize(this.canvas.width, this.canvas.height);
+    this.isTouchPrimaryDevice = this.detectTouchFirstDevice();
+    const availableHeight = Math.max(window.innerHeight - this.uiPadding, 200);
+    const hasCompactViewport = window.innerWidth < 900;
+    let scale = 1;
+    if (this.isTouchPrimaryDevice === true) {
+      scale = 0.75;
+    } else if (hasCompactViewport === true) {
+      scale = 0.8;
+    }
+
+    const logicalWidth = window.innerWidth / scale;
+    const logicalHeight = availableHeight / scale;
+
+    this.renderScale = scale;
+    this.viewWidth = logicalWidth;
+    this.viewHeight = logicalHeight;
+
+    this.canvas.width = logicalWidth;
+    this.canvas.height = logicalHeight;
+    this.canvas.style.width = `${window.innerWidth}px`;
+    this.canvas.style.height = `${availableHeight}px`;
+
+    this.player.setCanvasSize(logicalWidth, logicalHeight);
+    this.starfield.setCanvasSize(logicalWidth, logicalHeight);
+    this.asteroidManager.setCanvasSize(logicalWidth, logicalHeight);
+    this.powerUpManager.setCanvasSize(logicalWidth, logicalHeight);
+    this.alienManager.setCanvasSize(logicalWidth, logicalHeight);
   }
 
   // Handles keyboard input for movement, restart, and firing.
@@ -1176,6 +1235,12 @@ export class Game {
     if (typeof this.onPauseChange === 'function') {
       this.onPauseChange(false, false);
     }
+  }
+
+  // Sets additional vertical padding to keep canvas on-screen.
+  setUiPadding(pixels) {
+    this.uiPadding = Math.max(0, pixels);
+    this.handleResize();
   }
 
   // Adds score with multiplier and tracks categories.

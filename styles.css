@@ -21,16 +21,16 @@ body {
   justify-content: flex-start;
   background: var(--bg);
   color: var(--text);
-  padding: 16px 12px 28px 12px;
+  padding: 0;
 }
 
 .layout {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 100%;
-  max-width: 1280px;
-  gap: 14px;
+  width: 100vw;
+  max-width: none;
+  gap: 10px;
 }
 
 .hud {
@@ -93,13 +93,15 @@ body {
 }
 
 #gameCanvas {
-  width: min(1180px, 96vw);
-  height: auto;
-  aspect-ratio: 16 / 9;
+  width: 100vw;
+  height: 100vh;
+  max-width: 100vw;
+  max-height: 100vh;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   box-shadow: var(--shadow);
   background: linear-gradient(180deg, #0e1535 0%, #0a0f28 100%);
+  display: block;
 }
 
 .hud-grid {
@@ -392,6 +394,12 @@ body {
   justify-content: flex-end;
 }
 
+@media (max-width: 900px) {
+  .info-row {
+    display: none;
+  }
+}
+
 .info-button {
   padding: 10px 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -513,6 +521,10 @@ body {
 .start-message {
   color: #dfe4ff;
   font-size: 14px;
+}
+
+.rotate-overlay .modal-card {
+  max-width: 360px;
 }
 
 .modal-overlay {

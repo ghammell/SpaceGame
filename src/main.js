@@ -38,6 +38,7 @@ const startInstructionsButton = document.getElementById('startInstructionsButton
 const pauseOverlay = document.getElementById('pauseOverlay');
 const pauseResumeButton = document.getElementById('pauseResumeButton');
 let instructionsOpenedFromStart = false;
+const infoRowElement = document.querySelector('.info-row');
 const summaryFields = {
   score: document.getElementById('summaryScore'),
   timeScore: document.getElementById('summaryTimeScore'),
@@ -337,6 +338,36 @@ function setupPauseOverlay(game) {
   };
 }
 
+function setupTapToThrust(game) {
+  const tap = (event) => {
+    if (event !== undefined) {
+      event.preventDefault();
+    }
+    if (startOverlay !== null && startOverlay.classList.contains('hidden') === false) {
+      return;
+    }
+    if (pauseOverlay !== null && pauseOverlay.classList.contains('hidden') === false) {
+      return;
+    }
+    if (summaryOverlayElement !== null && summaryOverlayElement.classList.contains('visible') === true) {
+      return;
+    }
+    if (game.isCountdownActive === true) {
+      game.skipCountdown();
+      return;
+    }
+    if (game.isPaused === true) {
+      game.resumeGame();
+      return;
+    }
+    if (game.isGameOver === true) {
+      return;
+    }
+    game.player.jump();
+  };
+  canvasElement.addEventListener('pointerdown', tap, { passive: false });
+}
+
 // Bootstraps the game once the spaceman sprite is loaded.
 async function bootstrapGame() {
   const [spacemanImage, asteroidSprites, alienSprite, powerUpIcons] = await Promise.all([
@@ -374,6 +405,9 @@ async function bootstrapGame() {
   setupTestModeUI(game);
   setupStartOverlay(game);
   setupPauseOverlay(game);
+  setupTapToThrust(game);
+  const uiPad = (infoRowElement !== null ? infoRowElement.offsetHeight : 0) + 12;
+  game.setUiPadding(uiPad);
   game.handleResize();
 }
 
