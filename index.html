@@ -29,7 +29,7 @@
         <div class="summary-title small">Controls</div>
         <div class="info-grid">
           <div class="info-tile">
-            <div class="info-key">Space / Up</div>
+            <div class="info-key">Up</div>
             <div class="info-desc">Thrust upward</div>
           </div>
           <div class="info-tile">
@@ -70,8 +70,12 @@
   </section>
   <section id="startOverlay" class="modal-overlay visible" aria-label="Start game">
     <div class="modal-card start-card">
-      <div class="start-title">Ready to play?</div>
-      <div class="start-subtitle">Press Space or click Start.</div>
+      <div class="start-hero">
+        <img src="./assets/spaceman.svg" class="start-spaceman" alt="Spaceman" />
+        <div class="start-title">Orbital Dodge</div>
+        <div class="start-subtitle">Press Space or click Start.</div>
+        <div class="start-message">Welcome, pilot. Dodge the field, stack powerups, chase the high score.</div>
+      </div>
       <div class="start-actions">
         <button id="startPlayButton" class="summary-button">Start</button>
         <button id="startInstructionsButton" class="info-button ghost">View Instructions</button>
