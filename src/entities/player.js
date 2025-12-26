@@ -210,6 +210,7 @@ export class Player {
       cloak: '#6ac7ff',
       blaster: '#ffde59',
       slow: '#b39cff',
+      forceField: '#60a5fa',
       multiplier: '#ff9f45',
       blackHole: '#ff6b6b',
       solarFlare: '#ffb347',

@@ -5,6 +5,7 @@ import { AlienManager } from '../managers/alienManager.js';
 import { Starfield } from '../effects/starfield.js';
 import { Explosion } from '../effects/explosion.js';
 import { Bullet } from '../entities/bullet.js';
+import { setTestModeConfig } from '../entities/powerUp.js';
 
 // Drives the entire game loop, state, and rendering.
 export class Game {
@@ -23,8 +24,11 @@ export class Game {
     this.heartIcon.src = './assets/hud-heart.svg';
     this.scoreIcon = new Image();
     this.scoreIcon.src = './assets/hud-points.svg';
-    this.baseRenderWidth = 1100;
-    this.baseRenderHeight = 620;
+    this.spaceDustCloudImages = [
+      this.loadImage('./assets/effects/spacedust-cloud1.svg'),
+      this.loadImage('./assets/effects/spacedust-cloud2.svg'),
+      this.loadImage('./assets/effects/spacedust-cloud3.svg')
+    ];
     this.highScores = this.loadHighScores();
     this.lastUsedName = this.loadLastName();
     this.renderHighScores();
@@ -46,12 +50,27 @@ export class Game {
     this.solarFlareTimer = 0;
     this.waveTimer = 0;
     this.waveSettings = { amplitude: 42, speed: 2.6 };
-    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
-    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, forceField: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, forceField: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.forceFieldTimer = 0;
+    this.forceFieldPulseCooldown = 0;
+    this.forceFieldPulseActive = 0;
+    this.forceFieldPulseDuration = 0.25;
+    this.forceFieldRadius = 230;
+    this.spaceDustTimer = 0;
+    this.spaceDustIntensity = 0;
+    this.spaceDustParticles = [];
+    this.testModeEnabled = false;
+    this.testModeUsedDuringRun = false;
+    this.infiniteLivesEnabled = false;
+    this.testModePowerUp = null;
+    this.onPauseChange = null;
     this.isCountdownActive = false;
     this.countdownRemaining = 0;
     this.resetFrameTimestampNextFrame = false;
     this.hasSavedThisRun = false;
+    this.testModePowerUp = null;
+    this.infiniteLivesEnabled = false;
     this.ammoCount = 0;
     this.fireCooldownSeconds = 0;
     this.totalScore = 0;
@@ -73,15 +92,52 @@ export class Game {
     window.addEventListener('resize', this.handleResize);
   }
 
+  // Lightweight image loader for overlay assets.
+  loadImage(sourceUrl) {
+    const img = new Image();
+    img.src = sourceUrl;
+    return img;
+  }
+
   // Starts or restarts the game.
-  start() {
+  start(countdownSeconds = 3) {
     this.resetWorld();
     this.isCountdownActive = true;
-    this.countdownRemaining = 5;
+    this.countdownRemaining = countdownSeconds;
     this.isRunning = true;
     this.isPaused = false;
     this.lastFrameTimestamp = 0;
     this.animationFrameId = window.requestAnimationFrame(this.gameLoop);
+  }
+
+  // Enables a single-powerup test mode.
+  enterTestMode(powerupKey) {
+    this.testModePowerUp = powerupKey;
+    setTestModeConfig(true, powerupKey !== null ? [powerupKey] : null);
+    this.updateStatus(`Test mode: ${powerupKey ?? 'all'}`);
+  }
+
+  // Exits test mode, returning to normal random powerups.
+  exitTestMode() {
+    this.testModePowerUp = null;
+    setTestModeConfig(false, null);
+    this.updateStatus('Test mode off');
+  }
+
+  // Applies test mode settings from UI.
+  applyTestModeConfig(config) {
+    const { enabled, allowedPowerups, infiniteLives } = config;
+    setTestModeConfig(enabled, allowedPowerups ?? null);
+    this.testModePowerUp = enabled === true && Array.isArray(allowedPowerups) && allowedPowerups.length === 1 ? allowedPowerups[0] : null;
+    this.infiniteLivesEnabled = Boolean(infiniteLives);
+    this.testModeEnabled = Boolean(enabled);
+    if (this.testModeEnabled === true) {
+      this.testModeUsedDuringRun = true;
+    }
+    if (this.infiniteLivesEnabled === true) {
+      this.livesRemaining = Infinity;
+    }
+    this.updateHud();
   }
 
   // Resets the world state and HUD values.
@@ -100,12 +156,19 @@ export class Game {
     this.blackHoleTimer = 0;
     this.solarFlareTimer = 0;
     this.waveTimer = 0;
-    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
-    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.forceFieldTimer = 0;
+    this.forceFieldPulseCooldown = 0;
+    this.forceFieldPulseActive = 0;
+    this.spaceDustTimer = 0;
+    this.spaceDustIntensity = 0;
+    this.spaceDustParticles = [];
+    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, forceField: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, forceField: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
     this.isCountdownActive = false;
     this.countdownRemaining = 0;
     this.resetFrameTimestampNextFrame = false;
     this.hasSavedThisRun = false;
+    this.testModePowerUp = null;
     this.ammoCount = 0;
     this.fireCooldownSeconds = 0;
     this.totalScore = 0;
@@ -114,6 +177,7 @@ export class Game {
     this.phasedCount = 0;
     this.timeElapsedSeconds = 0;
     this.powerupCollectedCount = 0;
+    this.testModeUsedDuringRun = this.testModeEnabled === true;
     this.player.reset(this.canvas.height * 0.5);
     this.player.setAppearanceByLives(this.livesRemaining);
     this.asteroidManager.reset();
@@ -204,7 +268,8 @@ export class Game {
 
   // Updates HUD text values for lives and abilities.
   updateHud() {
-    this.hudElements.livesElement.textContent = String(this.livesRemaining);
+    const livesDisplay = this.infiniteLivesEnabled === true ? '∞' : String(this.livesRemaining);
+    this.hudElements.livesElement.textContent = livesDisplay;
     this.hudElements.cloakElement.textContent = this.cloakTimer > 0 ? `${this.cloakTimer.toFixed(1)}s` : '--';
     this.hudElements.blasterElement.textContent = this.blasterTimer > 0 ? `${this.ammoCount} ammo` : '--';
     this.hudElements.slowElement.textContent = this.slowTimer > 0 ? `${this.slowTimer.toFixed(1)}s` : '--';
@@ -268,6 +333,8 @@ export class Game {
     this.alienManager.update(deltaSeconds, asteroidSpeedScale);
     this.updateBullets(deltaSeconds);
     this.updateExplosions(deltaSeconds);
+    this.updateSpaceDust(deltaSeconds);
+    this.updateForceField(deltaSeconds);
     this.detectCollisions();
   }
 
@@ -289,6 +356,12 @@ export class Game {
     }
     if (this.slowTimer > 0) {
       this.powerupUptime.slow += deltaSeconds;
+    }
+    if (this.forceFieldTimer > 0) {
+      this.powerupUptime.forceField += deltaSeconds;
+    }
+    if (this.spaceDustTimer > 0) {
+      this.powerupUptime.spaceDust += deltaSeconds;
     }
     if (this.invulnerabilitySeconds > 0) {
       this.invulnerabilitySeconds -= deltaSeconds;
@@ -330,6 +403,25 @@ export class Game {
       this.slowTimer -= deltaSeconds;
       if (this.slowTimer < 0) {
         this.slowTimer = 0;
+      }
+    }
+
+    if (this.forceFieldTimer > 0) {
+      this.forceFieldTimer -= deltaSeconds;
+      if (this.forceFieldTimer < 0) {
+        this.forceFieldTimer = 0;
+      }
+    }
+
+    if (this.spaceDustTimer > 0) {
+      this.spaceDustTimer -= deltaSeconds;
+      if (this.spaceDustTimer < 0) {
+        this.spaceDustTimer = 0;
+        this.spaceDustIntensity = 0;
+        this.spaceDustParticles = [];
+      } else {
+        const ratio = this.durationLookup.spaceDust > 0 ? this.spaceDustTimer / this.durationLookup.spaceDust : 0;
+        this.spaceDustIntensity = Math.max(0.25, ratio);
       }
     }
 
@@ -462,17 +554,122 @@ export class Game {
     });
   }
 
+  // Drives force field pulses, timing, and asteroid clearing.
+  updateForceField(deltaSeconds) {
+    if (this.forceFieldTimer <= 0) {
+      this.forceFieldPulseActive = 0;
+      return;
+    }
+
+    if (this.forceFieldPulseCooldown > 0) {
+      this.forceFieldPulseCooldown -= deltaSeconds;
+      if (this.forceFieldPulseCooldown < 0) {
+        this.forceFieldPulseCooldown = 0;
+      }
+    }
+
+    if (this.forceFieldPulseActive > 0) {
+      this.forceFieldPulseActive -= deltaSeconds;
+      if (this.forceFieldPulseActive < 0) {
+        this.forceFieldPulseActive = 0;
+      } else {
+        this.applyForceFieldPulse();
+      }
+    }
+
+    if (this.forceFieldPulseActive <= 0 && this.forceFieldPulseCooldown <= 0) {
+      this.forceFieldPulseActive = this.forceFieldPulseDuration;
+      this.forceFieldPulseCooldown = 0.9;
+      this.applyForceFieldPulse();
+    }
+  }
+
+  // Applies the active force field pulse to nearby asteroids.
+  applyForceFieldPulse() {
+    if (this.forceFieldPulseActive <= 0) {
+      return;
+    }
+    const playerX = this.player.positionX;
+    const playerY = this.player.positionY;
+    const radiusSquared = this.forceFieldRadius * this.forceFieldRadius;
+    this.asteroidManager.asteroids = this.asteroidManager.asteroids.filter((asteroid) => {
+      const bounds = asteroid.getBounds();
+      const centerX = bounds.left + bounds.width * 0.5;
+      const centerY = bounds.top + bounds.height * 0.5;
+      const dx = centerX - playerX;
+      const dy = centerY - playerY;
+      const distSquared = dx * dx + dy * dy;
+      if (distSquared <= radiusSquared) {
+        this.destroyedCount += 1;
+        this.addScore(120, 'destroyed');
+        this.explosions.push(new Explosion(centerX, centerY));
+        return false;
+      }
+      return true;
+    });
+  }
+
+  // Advances space dust particle positions.
+  updateSpaceDust(deltaSeconds) {
+    if (this.spaceDustTimer <= 0 || this.spaceDustParticles.length === 0) {
+      return;
+    }
+    for (const particle of this.spaceDustParticles) {
+      particle.x -= particle.speed * deltaSeconds;
+      particle.y += particle.drift * deltaSeconds;
+      // Keep clouds on the right half; respawn to the right when they leave a small band.
+      if (particle.x < this.canvas.width * 0.55) {
+        particle.x = this.canvas.width * (0.7 + Math.random() * 0.3);
+        particle.y = Math.random() * this.canvas.height;
+      }
+      if (particle.y < -60 || particle.y > this.canvas.height + 60) {
+        particle.y = Math.random() * this.canvas.height;
+      }
+    }
+  }
+
+  buildSpaceDustParticles() {
+    const count = 50;
+    const particles = [];
+    for (let i = 0; i < count; i += 1) {
+      const startX = this.canvas.width * (0.65 + Math.random() * 0.35);
+      const size = 120 + Math.random() * 160;
+      particles.push({
+        x: startX,
+        y: Math.random() * this.canvas.height,
+        size,
+        alpha: 0.5 + Math.random() * 0.15,
+        speed: 30 + Math.random() * 50,
+        drift: (Math.random() - 0.5) * 20,
+        spriteIndex: Math.floor(Math.random() * this.spaceDustCloudImages.length)
+      });
+    }
+    return particles;
+  }
+
+  // Draws the force field pulse when active.
+  drawForceFieldPulse() {
+    if (this.forceFieldPulseActive <= 0) {
+      return;
+    }
+    const playerX = this.player.positionX;
+    const playerY = this.player.positionY;
+    const progress = 1 - this.forceFieldPulseActive / this.forceFieldPulseDuration;
+    const ringRadius = this.forceFieldRadius * (0.7 + 0.3 * progress);
+    const alpha = 0.15 + 0.25 * (1 - progress);
+    this.context.save();
+    this.context.strokeStyle = 'rgba(96, 165, 250, 0.9)';
+    this.context.lineWidth = 4;
+    this.context.globalAlpha = alpha;
+    this.context.beginPath();
+    this.context.arc(playerX, playerY, ringRadius, 0, Math.PI * 2);
+    this.context.stroke();
+    this.context.restore();
+  }
+
   // Draws the entire frame.
   draw() {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    const scaleX = this.baseRenderWidth / this.canvas.width;
-    const scaleY = this.baseRenderHeight / this.canvas.height;
-    const sceneScale = Math.min(scaleX, scaleY);
-    const translateX = (this.canvas.width / sceneScale - this.canvas.width) * 0.5;
-    const translateY = (this.canvas.height / sceneScale - this.canvas.height) * 0.5;
-    this.context.save();
-    this.context.scale(sceneScale, sceneScale);
-    this.context.translate(translateX, translateY);
     this.drawBackground();
     this.starfield.draw(this.context);
     this.powerUpManager.draw(this.context);
@@ -484,8 +681,9 @@ export class Game {
     const powerupRatios = this.getPowerupRatios();
     this.player.draw(this.context, isCloaked, flashIntensity, powerupRatios);
     this.drawExplosions();
-    this.context.restore();
     this.drawHitFlashOverlay();
+    this.drawSpaceDustOverlay();
+    this.drawForceFieldPulse();
     this.drawCountdownOverlay();
     this.drawCanvasHud();
   }
@@ -519,23 +717,31 @@ export class Game {
     const iconSize = 20;
     const padding = 12;
     let offsetX = this.canvas.width - padding;
-    const offsetY = padding + iconSize * 0.5;
-
-    if (this.heartIcon.complete === true) {
-      this.context.drawImage(this.heartIcon, offsetX - iconSize, offsetY - iconSize * 0.5, iconSize, iconSize);
-      this.context.fillStyle = 'rgba(255,255,255,0.9)';
-      this.context.font = '16px Inter, system-ui';
-      this.context.textAlign = 'right';
-      this.context.fillText(`${this.livesRemaining}`, offsetX - iconSize - 6, offsetY + 5);
-      offsetX -= iconSize * 2 + 28;
-    }
+    const scoreY = padding + iconSize * 0.5;
+    const livesY = scoreY + 22;
 
     if (this.scoreIcon !== undefined && this.scoreIcon.complete === true) {
-      this.context.drawImage(this.scoreIcon, offsetX - iconSize, offsetY - iconSize * 0.5, iconSize, iconSize);
+      this.context.drawImage(this.scoreIcon, offsetX - iconSize, scoreY - iconSize * 0.5, iconSize, iconSize);
       this.context.fillStyle = 'rgba(255,255,255,0.9)';
       this.context.font = '16px Inter, system-ui';
       this.context.textAlign = 'right';
-      this.context.fillText(`${Math.floor(this.totalScore).toLocaleString()}`, offsetX - iconSize - 6, offsetY + 5);
+      this.context.fillText(`${Math.floor(this.totalScore).toLocaleString()}`, offsetX - iconSize - 6, scoreY + 5);
+    }
+
+    if (this.heartIcon.complete === true) {
+      this.context.drawImage(this.heartIcon, offsetX - iconSize, livesY - iconSize * 0.5, iconSize, iconSize);
+      this.context.fillStyle = 'rgba(255,255,255,0.9)';
+      this.context.font = '16px Inter, system-ui';
+      this.context.textAlign = 'right';
+      const livesDisplay = this.infiniteLivesEnabled === true ? '∞' : String(this.livesRemaining);
+      this.context.fillText(livesDisplay, offsetX - iconSize - 6, livesY + 5);
+    }
+
+    if (this.testModeEnabled === true) {
+      this.context.fillStyle = '#fbbf24';
+      this.context.font = '12px Inter, system-ui';
+      this.context.textAlign = 'right';
+      this.context.fillText('TEST MODE', this.canvas.width - padding, livesY + 22);
     }
     this.context.restore();
   }
@@ -551,6 +757,53 @@ export class Game {
     this.context.globalAlpha = alpha;
     this.context.fillStyle = '#ffffff';
     this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.context.restore();
+  }
+
+  // Draws obscuring overlay for space dust.
+  drawSpaceDustOverlay() {
+    if (this.spaceDustTimer <= 0 || this.spaceDustIntensity <= 0) {
+      return;
+    }
+    const alpha = Math.min(this.spaceDustIntensity, 0.95);
+    this.context.save();
+
+    // Soft gradient from the right edge fading toward center.
+    const grad = this.context.createLinearGradient(this.canvas.width, 0, this.canvas.width * 0.4, 0);
+    grad.addColorStop(0, `rgba(15, 18, 32, ${alpha * 0.7})`);
+    grad.addColorStop(0.3, `rgba(15, 18, 32, ${alpha * 0.45})`);
+    grad.addColorStop(1, `rgba(15, 18, 32, 0)`);
+    this.context.globalAlpha = 1;
+    this.context.fillStyle = grad;
+    this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // Overlay cloud sprites for extra obstruction (SVGs only).
+    const intensityScale = alpha;
+    if (this.spaceDustCloudImages !== undefined && this.spaceDustCloudImages.length > 0) {
+      for (const particle of this.spaceDustParticles) {
+        const img = this.spaceDustCloudImages[particle.spriteIndex % this.spaceDustCloudImages.length];
+        if (img.complete === true) {
+          const cloudWidth = particle.size;
+          const cloudHeight = particle.size * 0.6;
+          this.context.globalAlpha = particle.alpha * intensityScale;
+          this.context.drawImage(img, particle.x - cloudWidth * 0.5, particle.y - cloudHeight * 0.5, cloudWidth, cloudHeight);
+        }
+      }
+
+      // Extra dense strip on the far right.
+      for (let i = 0; i < 6; i += 1) {
+        const img = this.spaceDustCloudImages[i % this.spaceDustCloudImages.length];
+        if (img.complete === true) {
+          const cloudWidth = this.canvas.width * 0.18;
+          const cloudHeight = cloudWidth * 0.6;
+          const x = this.canvas.width * (0.88 + 0.02 * i);
+          const y = (this.canvas.height * 0.1) + (i % 3) * (this.canvas.height * 0.3);
+          this.context.globalAlpha = 0.7;
+          this.context.drawImage(img, x, y, cloudWidth, cloudHeight);
+        }
+      }
+    }
+
     this.context.restore();
   }
 
@@ -701,6 +954,26 @@ export class Game {
       return;
     }
 
+    if (powerUp.type === 'forceField') {
+      this.forceFieldTimer = powerUp.config.durationSeconds;
+      this.durationLookup.forceField = powerUp.config.durationSeconds;
+      this.forceFieldPulseCooldown = 0;
+      this.forceFieldPulseActive = 0;
+      this.updateStatus('Force field online! Pulses will clear nearby asteroids.');
+      this.updateHud();
+      return;
+    }
+
+    if (powerUp.type === 'spaceDust') {
+      this.spaceDustTimer = powerUp.config.durationSeconds;
+      this.durationLookup.spaceDust = powerUp.config.durationSeconds;
+      this.spaceDustIntensity = 1;
+      this.spaceDustParticles = this.buildSpaceDustParticles();
+      this.updateStatus('Space dust! Vision obscured temporarily.');
+      this.updateHud();
+      return;
+    }
+
     if (powerUp.type === 'blackHole') {
       this.blackHoleTimer = powerUp.config.durationSeconds;
       this.durationLookup.blackHole = powerUp.config.durationSeconds;
@@ -733,6 +1006,10 @@ export class Game {
 
   // Handles player damage and game over transitions.
   handleHit() {
+    if (this.infiniteLivesEnabled === true) {
+      this.updateStatus('Hit! Infinite lives active.');
+      return;
+    }
     if (this.invulnerabilitySeconds > 0) {
       return;
     }
@@ -783,6 +1060,8 @@ export class Game {
       cloak: this.durationLookup.cloak > 0 ? this.cloakTimer / this.durationLookup.cloak : 0,
       blaster: this.durationLookup.blaster > 0 ? this.blasterTimer / this.durationLookup.blaster : 0,
       slow: this.durationLookup.slow > 0 ? this.slowTimer / this.durationLookup.slow : 0,
+      forceField: this.durationLookup.forceField > 0 ? this.forceFieldTimer / this.durationLookup.forceField : 0,
+      spaceDust: this.durationLookup.spaceDust > 0 ? this.spaceDustTimer / this.durationLookup.spaceDust : 0,
       multiplier: this.durationLookup.multiplier > 0 ? this.multiplierTimer / this.durationLookup.multiplier : 0,
       blackHole: this.durationLookup.blackHole > 0 ? this.blackHoleTimer / this.durationLookup.blackHole : 0,
       solarFlare: this.durationLookup.solarFlare > 0 ? this.solarFlareTimer / this.durationLookup.solarFlare : 0,
@@ -831,8 +1110,16 @@ export class Game {
     if (this.summaryFields.nameInput !== undefined && this.summaryFields.nameInput !== null) {
       this.summaryFields.nameInput.value = this.lastUsedName ?? '';
     }
+    const savingBlocked = this.testModeUsedDuringRun === true;
     if (this.summaryFields.saveButton !== undefined && this.summaryFields.saveButton !== null) {
-      this.summaryFields.saveButton.disabled = this.hasSavedThisRun;
+      this.summaryFields.saveButton.disabled = this.hasSavedThisRun || savingBlocked;
+      this.summaryFields.saveButton.textContent = savingBlocked === true ? 'Unavailable in test mode' : (this.hasSavedThisRun ? 'Saved' : 'Save');
+    }
+    if (this.summaryFields.saveInline !== undefined && this.summaryFields.saveInline !== null) {
+      this.summaryFields.saveInline.style.display = savingBlocked === true ? 'none' : '';
+    }
+    if (this.summaryFields.testModeNotice !== undefined && this.summaryFields.testModeNotice !== null) {
+      this.summaryFields.testModeNotice.style.display = savingBlocked === true ? '' : 'none';
     }
     this.renderHighScores();
     this.summaryOverlay.classList.add('visible');
@@ -847,16 +1134,47 @@ export class Game {
   }
 
   // Toggles pause state.
-  togglePause() {
+  togglePause(showOverlay = true) {
     if (this.isGameOver === true) {
       return;
     }
     this.isPaused = !this.isPaused;
     if (this.isPaused === true) {
       this.updateStatus('Paused (Space to resume)');
+      if (typeof this.onPauseChange === 'function') {
+        this.onPauseChange(true, showOverlay);
+      }
     } else {
       this.updateStatus('');
       this.lastFrameTimestamp = performance.now();
+      if (typeof this.onPauseChange === 'function') {
+        this.onPauseChange(false, showOverlay);
+      }
+    }
+  }
+
+  // Pauses without toggling (used when opening overlays).
+  pauseGame(showOverlay = true) {
+    if (this.isGameOver === true || this.isPaused === true) {
+      return;
+    }
+    this.isPaused = true;
+    this.updateStatus('Paused (Space to resume)');
+    if (typeof this.onPauseChange === 'function') {
+      this.onPauseChange(true, showOverlay);
+    }
+  }
+
+  // Resumes from a paused state without toggling.
+  resumeGame() {
+    if (this.isGameOver === true || this.isPaused === false) {
+      return;
+    }
+    this.isPaused = false;
+    this.updateStatus('');
+    this.lastFrameTimestamp = performance.now();
+    if (typeof this.onPauseChange === 'function') {
+      this.onPauseChange(false, false);
     }
   }
 
@@ -921,6 +1239,9 @@ export class Game {
 
   saveHighScore() {
     if (this.summaryFields.nameInput === undefined || this.summaryFields.highScoresList === undefined) {
+      return;
+    }
+    if (this.testModeUsedDuringRun === true) {
       return;
     }
     if (this.hasSavedThisRun === true) {

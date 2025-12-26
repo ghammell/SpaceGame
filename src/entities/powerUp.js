@@ -1,8 +1,12 @@
+let testModeConfig = { enabled: false, allowed: null };
+
 const powerUpConfigs = {
   extraLife: { color: '#6bf178', label: '+1', durationSeconds: 0 },
   cloak: { color: '#6ac7ff', label: 'C', durationSeconds: 6 },
   blaster: { color: '#ffde59', label: 'B', durationSeconds: 9 },
   slow: { color: '#b39cff', label: 'S', durationSeconds: 7 },
+  forceField: { color: '#60a5fa', label: 'F', durationSeconds: 8 },
+  spaceDust: { color: '#fbbf24', label: 'D', durationSeconds: 6, isNegative: true },
   multiplier: { color: '#ff9f45', label: 'Mx', durationSeconds: 10 },
   blackHole: { color: '#3f2e5c', label: 'BH', durationSeconds: 7, isNegative: true },
   solarFlare: { color: '#ffb347', label: 'SF', durationSeconds: 7, isNegative: true },
@@ -93,23 +97,40 @@ export class PowerUp {
 }
 
 // Retrieves a random power-up type with weighted odds.
+export function setTestModeConfig(enabled, allowedKeys) {
+  testModeConfig = {
+    enabled: Boolean(enabled),
+    allowed: Array.isArray(allowedKeys) && allowedKeys.length > 0 ? [...allowedKeys] : null
+  };
+}
+
 export function getRandomPowerUpType() {
+  if (testModeConfig.enabled === true) {
+    if (testModeConfig.allowed !== null) {
+      const idx = Math.floor(Math.random() * testModeConfig.allowed.length);
+      return testModeConfig.allowed[idx];
+    }
+  }
   const roll = Math.random();
   if (roll < 0.5) {
     const positiveWeight = Math.random();
-    if (positiveWeight < 0.3) return 'extraLife';
-    if (positiveWeight < 0.55) return 'cloak';
-    if (positiveWeight < 0.75) return 'blaster';
-    if (positiveWeight < 0.9) return 'slow';
+    if (positiveWeight < 0.28) return 'extraLife';
+    if (positiveWeight < 0.5) return 'cloak';
+    if (positiveWeight < 0.68) return 'blaster';
+    if (positiveWeight < 0.82) return 'slow';
+    if (positiveWeight < 0.92) return 'forceField';
     return 'multiplier';
   }
   const negativeWeight = Math.random();
-  if (negativeWeight < 0.45) {
+  if (negativeWeight < 0.35) {
     return 'blackHole';
   }
-  if (negativeWeight < 0.75) {
+  if (negativeWeight < 0.6) {
     return 'solarFlare';
   }
-  return 'wave';
+  if (negativeWeight < 0.82) {
+    return 'wave';
+  }
+  return 'spaceDust';
 }
 
