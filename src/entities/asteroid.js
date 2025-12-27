@@ -2,10 +2,20 @@
 export class Asteroid {
   constructor(canvasWidth, canvasHeight, baseSpeed, spriteImage, sizeScale) {
     const sizeMultiplier = sizeScale ?? 1;
-    const size = (32 + Math.random() * 32) * sizeMultiplier;
+    // The asteroid's `scale` controls how large its SVG sprite is drawn. Note: we intentionally apply
+    // `sizeMultiplier` only once here to avoid "squared" scaling that can inflate collision bounds.
     this.scale = (0.78 + Math.random() * 0.8) * sizeMultiplier;
-    this.radiusX = size * this.scale;
-    this.radiusY = size * (0.8 + Math.random() * 0.35) * this.scale;
+    this.spriteImage = spriteImage;
+
+    // Use the actual sprite dimensions to derive radii so hitboxes track the visible art.
+    // This is especially important for large asteroids (difficulty ramp / solar flare), where overly
+    // large AABBs can cause "gap hits" even when the sprites don't visually touch.
+    const fallbackSpriteWidth = 96;
+    const fallbackSpriteHeight = 96;
+    const spriteWidth = this.spriteImage !== null && this.spriteImage !== undefined ? this.spriteImage.width : fallbackSpriteWidth;
+    const spriteHeight = this.spriteImage !== null && this.spriteImage !== undefined ? this.spriteImage.height : fallbackSpriteHeight;
+    this.radiusX = spriteWidth * this.scale * 0.5;
+    this.radiusY = spriteHeight * this.scale * 0.5;
     this.positionX = canvasWidth + this.radiusX + 20;
     this.canvasWidth = canvasWidth;
     this.canvasHeight = canvasHeight;
@@ -15,7 +25,6 @@ export class Asteroid {
     this.speed = baseSpeed + Math.random() * 150;
     this.rotation = Math.random() * Math.PI * 2;
     this.rotationSpeed = (Math.random() - 0.5) * 1.4;
-    this.spriteImage = spriteImage;
     this.oscPhase = Math.random() * Math.PI * 2;
     this.oscSpeed = 0.8 + Math.random() * 0.6;
     this.velocityY = 0;
@@ -91,10 +100,8 @@ export class Asteroid {
   // Returns the asteroid bounding box for collision tests.
   getBounds() {
     const sizeScale = this.activeSizeScale ?? 1;
-    const spriteWidth = this.spriteImage ? this.spriteImage.width * this.scale * sizeScale : this.radiusX * 2 * sizeScale;
-    const spriteHeight = this.spriteImage ? this.spriteImage.height * this.scale * sizeScale : this.radiusY * 2 * sizeScale;
-    const width = Math.max(this.radiusX * 2 * sizeScale, spriteWidth) * 0.78;
-    const height = Math.max(this.radiusY * 2 * sizeScale, spriteHeight) * 0.78;
+    const width = this.radiusX * 2 * sizeScale * 0.78;
+    const height = this.radiusY * 2 * sizeScale * 0.78;
     return {
       left: this.positionX - width * 0.5,
       top: this.positionY - height * 0.5,

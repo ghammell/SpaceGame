@@ -20,6 +20,10 @@ const DESKTOP_TARGET_ASPECT_RATIO = 9 / 16;
 const DESKTOP_RENDER_SCALE = 0.8;
 const MOBILE_RENDER_SCALE = 0.65;
 
+// Collision tuning: use smaller circles than the visible sprites to avoid "gap hits" and allow a tiny overlap.
+const PLAYER_HIT_RADIUS_SCALE = 0.24;
+const HAZARD_HIT_RADIUS_SHRINK = 0.85;
+
 // Drives the entire game loop, state, and rendering.
 export class Game {
   constructor(canvasElement, drawingContext, hudElements, assets) {
@@ -2351,17 +2355,36 @@ export class Game {
     }
 
     const playerBounds = this.player.getBounds();
+    const playerCenterX = this.player.positionX;
+    const playerCenterY = this.player.positionY;
+    // Use a slightly smaller circular hurtbox so collisions match the visible sprite more closely.
+    const playerHitRadius = Math.min(this.player.width, this.player.height) * PLAYER_HIT_RADIUS_SCALE;
     for (const asteroid of this.asteroidManager.asteroids) {
       const asteroidBounds = asteroid.getBounds();
       const isOverlapping = this.isBoundingOverlap(playerBounds, asteroidBounds);
-      if (isOverlapping === true) {
-        if (barrierActive === true) {
-          this.handleBarrierAsteroidDetonation(asteroid);
-        } else {
-          this.handleHit();
-        }
+      if (isOverlapping !== true) {
+        continue;
+      }
+
+      if (barrierActive === true) {
+        this.handleBarrierAsteroidDetonation(asteroid);
         return;
       }
+
+      // Narrow-phase collision: circle test to avoid the "AABB corner" gap hits on rotated / irregular SVGs.
+      const asteroidCenterX = asteroid.positionX;
+      const asteroidCenterY = asteroid.positionY;
+      const asteroidBaseRadius = Math.min(asteroidBounds.width, asteroidBounds.height) * 0.5;
+      const asteroidHitRadius = asteroidBaseRadius * HAZARD_HIT_RADIUS_SHRINK;
+      const deltaX = playerCenterX - asteroidCenterX;
+      const deltaY = playerCenterY - asteroidCenterY;
+      const distance = Math.hypot(deltaX, deltaY);
+      if (distance > playerHitRadius + asteroidHitRadius) {
+        continue;
+      }
+
+      this.handleHit();
+      return;
     }
   }
 
@@ -2376,19 +2399,38 @@ export class Game {
     }
 
     const playerBounds = this.player.getBounds();
+    const playerCenterX = this.player.positionX;
+    const playerCenterY = this.player.positionY;
+    const playerHitRadius = Math.min(this.player.width, this.player.height) * PLAYER_HIT_RADIUS_SCALE;
     for (let debrisIndex = this.spaceDebrisPieces.length - 1; debrisIndex >= 0; debrisIndex -= 1) {
       const debris = this.spaceDebrisPieces[debrisIndex];
-      if (this.isBoundingOverlap(playerBounds, debris.getBounds()) === true) {
+      const debrisBounds = debris.getBounds();
+      if (this.isBoundingOverlap(playerBounds, debrisBounds) !== true) {
+        continue;
+      }
+
+      if (barrierActive === true) {
         this.spaceDebrisPieces.splice(debrisIndex, 1);
-        if (barrierActive === true) {
-          this.handleBarrierSpaceDebrisDetonation(debris);
-          return;
-        }
-        this.explosions.push(new Explosion(debris.positionX, debris.positionY, { maxRadius: 70, ringAlpha: 0.45 }));
-        this.startCameraShake(10, 0.22);
-        this.handleHit();
+        this.handleBarrierSpaceDebrisDetonation(debris);
         return;
       }
+
+      const debrisCenterX = debris.positionX;
+      const debrisCenterY = debris.positionY;
+      const debrisBaseRadius = Math.min(debrisBounds.width, debrisBounds.height) * 0.5;
+      const debrisHitRadius = debrisBaseRadius * HAZARD_HIT_RADIUS_SHRINK;
+      const deltaX = playerCenterX - debrisCenterX;
+      const deltaY = playerCenterY - debrisCenterY;
+      const distance = Math.hypot(deltaX, deltaY);
+      if (distance > playerHitRadius + debrisHitRadius) {
+        continue;
+      }
+
+      this.spaceDebrisPieces.splice(debrisIndex, 1);
+      this.explosions.push(new Explosion(debris.positionX, debris.positionY, { maxRadius: 70, ringAlpha: 0.45 }));
+      this.startCameraShake(10, 0.22);
+      this.handleHit();
+      return;
     }
   }
 
@@ -2399,16 +2441,34 @@ export class Game {
       return;
     }
     const playerBounds = this.player.getBounds();
+    const playerCenterX = this.player.positionX;
+    const playerCenterY = this.player.positionY;
+    const playerHitRadius = Math.min(this.player.width, this.player.height) * PLAYER_HIT_RADIUS_SCALE;
     for (let alienIndex = this.alienManager.aliens.length - 1; alienIndex >= 0; alienIndex -= 1) {
       const alien = this.alienManager.aliens[alienIndex];
-      if (this.isBoundingOverlap(playerBounds, alien.getBounds()) === true) {
-        if (barrierActive === true) {
-          this.handleBarrierAlienDetonation(alien);
-          return;
-        }
-        this.handleHit();
+      const alienBounds = alien.getBounds();
+      if (this.isBoundingOverlap(playerBounds, alienBounds) !== true) {
+        continue;
+      }
+
+      if (barrierActive === true) {
+        this.handleBarrierAlienDetonation(alien);
         return;
       }
+
+      const alienCenterX = alienBounds.left + alienBounds.width * 0.5;
+      const alienCenterY = alienBounds.top + alienBounds.height * 0.5;
+      const alienBaseRadius = Math.min(alienBounds.width, alienBounds.height) * 0.5;
+      const alienHitRadius = alienBaseRadius * HAZARD_HIT_RADIUS_SHRINK;
+      const deltaX = playerCenterX - alienCenterX;
+      const deltaY = playerCenterY - alienCenterY;
+      const distance = Math.hypot(deltaX, deltaY);
+      if (distance > playerHitRadius + alienHitRadius) {
+        continue;
+      }
+
+      this.handleHit();
+      return;
     }
   }
 
@@ -2451,7 +2511,7 @@ export class Game {
     const playerBounds = this.player.getBounds();
     const playerX = this.player.positionX;
     const playerY = this.player.positionY;
-    const playerRadius = Math.min(this.player.width, this.player.height) * 0.35;
+    const playerRadius = Math.min(this.player.width, this.player.height) * PLAYER_HIT_RADIUS_SCALE;
     for (let index = this.hazardShootingStars.length - 1; index >= 0; index -= 1) {
       const shootingStar = this.hazardShootingStars[index];
       // Broad phase (head only; trail is visual).
@@ -2465,7 +2525,7 @@ export class Game {
       const deltaX = playerX - headX;
       const deltaY = playerY - headY;
       const distance = Math.hypot(deltaX, deltaY);
-      const headRadius = shootingStar.getHeadRadius();
+      const headRadius = shootingStar.getHeadRadius() * HAZARD_HIT_RADIUS_SHRINK;
       if (distance <= playerRadius + headRadius) {
         this.hazardShootingStars.splice(index, 1);
         if (barrierActive === true) {

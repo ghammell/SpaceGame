@@ -61,7 +61,7 @@ export class AlienManager {
     }
 
     for (const laser of this.lasers) {
-      laser.update(deltaSeconds);
+      laser.update(deltaSeconds, speedScale);
     }
 
     this.aliens = this.aliens.filter((alien) => alien.isOffScreen() === false);

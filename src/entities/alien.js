@@ -79,9 +79,9 @@ export class Alien {
         const muzzleX = leftEdgeX - 2;
         const tailLength = 260 + Math.random() * 260;
         const tailThickness = 5 + Math.random() * 2.5;
-        const durationSeconds = 0.55 + Math.random() * 0.25;
         const extendSeconds = 0.12 + Math.random() * 0.08;
-        return new Laser(muzzleX, this.positionY, { tailLength, tailThickness, durationSeconds, extendSeconds, owner: this });
+        // Let the beam-bolt persist until it leaves the screen so it doesn't appear to "stall" or vanish early.
+        return new Laser(muzzleX, this.positionY, { tailLength, tailThickness, extendSeconds, owner: this });
       }
       return new Laser(this.positionX - this.baseWidth * this.scale * 0.4, this.positionY, { owner: this });
     }
@@ -139,12 +139,14 @@ export class Laser {
   }
 
   // Advances the laser to the left.
-  update(deltaSeconds) {
+  update(deltaSeconds, speedScale = 1) {
     this.previousPositionX = this.positionX;
     this.previousPositionY = this.positionY;
     this.ageSeconds += deltaSeconds;
 
-    const positionDelta = this.speed * deltaSeconds;
+    const safeSpeedScale = typeof speedScale === 'number' && Number.isFinite(speedScale) ? speedScale : 1;
+    const effectiveSpeed = this.speed * safeSpeedScale;
+    const positionDelta = effectiveSpeed * deltaSeconds;
     this.positionX -= positionDelta;
   }
 
