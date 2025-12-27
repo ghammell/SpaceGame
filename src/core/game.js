@@ -812,7 +812,7 @@ export class Game {
     if (this.spaceDustIntensity <= 0 || this.spaceDustParticles.length === 0) {
       return;
     }
-    const leftRespawnX = this.canvas.width * 0.2;
+    const leftRespawnX = this.canvas.width * 0.15;
     const respawnMinX = this.canvas.width * 1.02;
     const respawnMaxX = this.canvas.width * 1.35;
     for (const particle of this.spaceDustParticles) {
@@ -837,8 +837,8 @@ export class Game {
     const renderScale = this.renderScale > 0 ? this.renderScale : 1;
     const displayWidth = this.canvas.width * renderScale;
     const qualityScale = Math.max(0.55, Math.min(1, renderScale));
-    const hazeCount = Math.round(38 * qualityScale);
-    const wallCount = Math.round(20 * qualityScale);
+    const hazeCount = Math.round(44 * qualityScale);
+    const wallCount = Math.round(24 * qualityScale);
     const count = hazeCount + wallCount;
     const particles = [];
     for (let particleIndex = 0; particleIndex < count; particleIndex += 1) {
@@ -857,7 +857,7 @@ export class Game {
         y: Math.random() * this.canvas.height,
         size: sizeDisplay / renderScale,
         heightFactor: isWallParticle === true ? 0.55 + Math.random() * 0.15 : 0.55 + Math.random() * 0.25,
-        alpha: isWallParticle === true ? 0.78 + Math.random() * 0.18 : 0.55 + Math.random() * 0.25,
+        alpha: isWallParticle === true ? 0.82 + Math.random() * 0.16 : 0.6 + Math.random() * 0.25,
         speed: speedDisplay / renderScale,
         drift: driftDisplay / renderScale,
         spriteIndex: Math.floor(Math.random() * this.spaceDustCloudImages.length)
@@ -996,20 +996,20 @@ export class Game {
     this.context.save();
 
     // Strong right-side shroud (nearly opaque) plus cool ion-fog tint.
-    const shroudStartX = this.canvas.width * 0.25;
+    const shroudStartX = this.canvas.width * 0.18;
     const shroudGradient = this.context.createLinearGradient(shroudStartX, 0, this.canvas.width, 0);
     shroudGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    shroudGradient.addColorStop(0.45, `rgba(8, 12, 26, ${alpha * 0.35})`);
-    shroudGradient.addColorStop(0.75, `rgba(6, 8, 18, ${alpha * 0.82})`);
-    shroudGradient.addColorStop(1, `rgba(6, 8, 18, ${alpha * 0.97})`);
+    shroudGradient.addColorStop(0.45, `rgba(8, 12, 26, ${alpha * 0.42})`);
+    shroudGradient.addColorStop(0.75, `rgba(6, 8, 18, ${alpha * 0.90})`);
+    shroudGradient.addColorStop(1, `rgba(6, 8, 18, ${alpha * 0.99})`);
     this.context.globalAlpha = 1;
     this.context.fillStyle = shroudGradient;
     this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     const tintGradient = this.context.createLinearGradient(shroudStartX, 0, this.canvas.width, 0);
     tintGradient.addColorStop(0, 'rgba(147, 197, 253, 0)');
-    tintGradient.addColorStop(0.6, `rgba(59, 130, 246, ${alpha * 0.10})`);
-    tintGradient.addColorStop(1, `rgba(148, 163, 184, ${alpha * 0.18})`);
+    tintGradient.addColorStop(0.6, `rgba(59, 130, 246, ${alpha * 0.12})`);
+    tintGradient.addColorStop(1, `rgba(148, 163, 184, ${alpha * 0.22})`);
     this.context.fillStyle = tintGradient;
     this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -1022,8 +1022,8 @@ export class Game {
           const cloudWidth = particle.size;
           const cloudHeight = particle.size * (particle.heightFactor ?? 0.6);
           const xStrength = Math.max(0, Math.min(1, (particle.x - shroudStartX) / (this.canvas.width - shroudStartX)));
-          const depthAlphaBoost = 0.25 + 0.9 * xStrength;
-          this.context.globalAlpha = Math.min(0.98, particle.alpha * intensityScale * depthAlphaBoost);
+          const depthAlphaBoost = 0.35 + 0.95 * xStrength;
+          this.context.globalAlpha = Math.min(0.995, particle.alpha * intensityScale * depthAlphaBoost);
           this.context.drawImage(img, particle.x - cloudWidth * 0.5, particle.y - cloudHeight * 0.5, cloudWidth, cloudHeight);
         }
       }
