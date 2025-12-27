@@ -11,7 +11,8 @@ export class AsteroidManager {
     this.spawnIntervalStart = 1.8;
     this.spawnIntervalMin = 0.85;
     this.baseSpeedStart = 240;
-    this.baseSpeedMax = 360;
+    // Standard gameplay ramps base asteroid speed up to 2.5x over the full difficulty window.
+    this.baseSpeedMax = this.baseSpeedStart * 2.5;
     this.spawnIntervalSeconds = this.spawnIntervalStart;
     this.baseSpeed = this.baseSpeedStart;
     this.difficultyTimer = 0;
@@ -21,6 +22,9 @@ export class AsteroidManager {
   setCanvasSize(canvasWidth, canvasHeight) {
     this.canvasWidth = canvasWidth;
     this.canvasHeight = canvasHeight;
+    for (const asteroid of this.asteroids) {
+      asteroid.setCanvasSize(canvasWidth, canvasHeight);
+    }
   }
 
   // Clears all asteroids and timers.
@@ -31,14 +35,16 @@ export class AsteroidManager {
   }
 
   // Updates spawn timers, difficulty scaling, and asteroid positions.
-  update(deltaSeconds, speedScale, sizeScale = 1, waveSettings) {
+  update(deltaSeconds, speedScale, sizeScale = 1, waveSettings, spawnRateMultiplier = 1) {
     this.spawnTimer += deltaSeconds;
     this.difficultyTimer += deltaSeconds;
 
     const difficultyProgress = Math.min(this.difficultyTimer / 180, 1);
     const effectiveInterval = this.lerp(this.spawnIntervalStart, this.spawnIntervalMin, difficultyProgress);
+    const safeSpawnRateMultiplier = typeof spawnRateMultiplier === 'number' && spawnRateMultiplier > 0 ? spawnRateMultiplier : 1;
+    const adjustedInterval = Math.max(0.15, effectiveInterval / safeSpawnRateMultiplier);
     this.baseSpeed = this.lerp(this.baseSpeedStart, this.baseSpeedMax, difficultyProgress);
-    if (this.spawnTimer >= effectiveInterval) {
+    if (this.spawnTimer >= adjustedInterval) {
       this.spawnAsteroid();
       this.spawnTimer = 0;
     }
@@ -78,7 +84,7 @@ export class AsteroidManager {
   // Computes current average size ramp.
   getCurrentSizeScale() {
     const progress = Math.min(this.difficultyTimer / 180, 1);
-    return this.lerp(0.75, 1.25, progress);
+    return this.lerp(0.75, 2.0, progress);
   }
 
   // Linear interpolation helper.

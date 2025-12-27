@@ -25,7 +25,8 @@ export class Game {
     this.hudElements = hudElements;
     this.summaryOverlay = assets.summaryOverlay;
     this.summaryFields = assets.summaryFields;
-    this.player = new Player(this.canvas.width, this.canvas.height, assets.spacemanImage);
+    const playerSpriteSource = assets.spacemanSprites ?? assets.spacemanImage;
+    this.player = new Player(this.canvas.width, this.canvas.height, playerSpriteSource);
     this.starfield = new Starfield(this.canvas.width, this.canvas.height);
     this.asteroidManager = new AsteroidManager(this.canvas.width, this.canvas.height, assets.asteroidSprites);
     this.powerUpManager = new PowerUpManager(this.canvas.width, this.canvas.height, assets.powerUpIcons);
@@ -63,14 +64,20 @@ export class Game {
     this.blackHoleTimer = 0;
     this.solarFlareTimer = 0;
     this.waveTimer = 0;
-    this.waveSettings = { amplitude: 42, speed: 2.6 };
-    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, forceField: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
-    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, forceField: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.waveSettings = { amplitude: 78, speed: 2.6 };
+    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
     this.forceFieldTimer = 0;
     this.forceFieldPulseCooldown = 0;
     this.forceFieldPulseActive = 0;
     this.forceFieldPulseDuration = 0.25;
     this.forceFieldRadius = 230;
+    this.orbitalLaserTimer = 0;
+    this.orbitalLaserStartAngleRadians = 0;
+    this.seekerMissilesTimer = 0;
+    this.seekerMissilesShotsRemaining = 0;
+    this.seekerMissilesFireCooldownSeconds = 0;
+    this.seekerMissilesFireIntervalSeconds = 0;
     this.missileBarrageTimer = 0;
     this.asteroidSplitterTimer = 0;
     this.spaceDustTimer = 0;
@@ -80,6 +87,10 @@ export class Game {
     this.testModeUsedDuringRun = false;
     this.infiniteLivesEnabled = false;
     this.testModePowerUp = null;
+    this.testAsteroidSpeedMultiplier = 1;
+    this.testAsteroidSizeMultiplier = 1;
+    this.testAsteroidSpawnRateMultiplier = 1;
+    this.testPowerUpSpawnRateMultiplier = 1;
     this.onPauseChange = null;
     this.uiPadding = 0;
     this.viewWidth = 0;
@@ -195,11 +206,37 @@ export class Game {
 
   // Applies test mode settings from UI.
   applyTestModeConfig(config) {
-    const { enabled, allowedPowerups, infiniteLives } = config;
-    setTestModeConfig(enabled, allowedPowerups ?? null);
-    this.testModePowerUp = enabled === true && Array.isArray(allowedPowerups) && allowedPowerups.length === 1 ? allowedPowerups[0] : null;
-    this.infiniteLivesEnabled = Boolean(infiniteLives);
-    this.testModeEnabled = Boolean(enabled);
+    const {
+      enabled,
+      allowedPowerups,
+      infiniteLives,
+      asteroidSpeedMultiplier,
+      asteroidSizeMultiplier,
+      asteroidSpawnRateMultiplier,
+      powerUpSpawnRateMultiplier
+    } = config;
+    const isEnabled = Boolean(enabled);
+    setTestModeConfig(isEnabled, isEnabled === true ? (allowedPowerups ?? null) : null);
+    this.testModePowerUp = isEnabled === true && Array.isArray(allowedPowerups) && allowedPowerups.length === 1 ? allowedPowerups[0] : null;
+    this.testModeEnabled = isEnabled;
+    this.infiniteLivesEnabled = isEnabled === true ? Boolean(infiniteLives) : false;
+
+    if (isEnabled === true) {
+      this.testAsteroidSpeedMultiplier = typeof asteroidSpeedMultiplier === 'number' && Number.isFinite(asteroidSpeedMultiplier) ? asteroidSpeedMultiplier : 1;
+      this.testAsteroidSizeMultiplier = typeof asteroidSizeMultiplier === 'number' && Number.isFinite(asteroidSizeMultiplier) ? asteroidSizeMultiplier : 1;
+      this.testAsteroidSpawnRateMultiplier = typeof asteroidSpawnRateMultiplier === 'number' && Number.isFinite(asteroidSpawnRateMultiplier) ? asteroidSpawnRateMultiplier : 1;
+      this.testPowerUpSpawnRateMultiplier = typeof powerUpSpawnRateMultiplier === 'number' && Number.isFinite(powerUpSpawnRateMultiplier) ? powerUpSpawnRateMultiplier : 1;
+      this.testAsteroidSpeedMultiplier = Math.max(0.1, Math.min(6, this.testAsteroidSpeedMultiplier));
+      this.testAsteroidSizeMultiplier = Math.max(0.2, Math.min(6, this.testAsteroidSizeMultiplier));
+      this.testAsteroidSpawnRateMultiplier = Math.max(0.1, Math.min(10, this.testAsteroidSpawnRateMultiplier));
+      this.testPowerUpSpawnRateMultiplier = Math.max(0.1, Math.min(10, this.testPowerUpSpawnRateMultiplier));
+    } else {
+      this.testAsteroidSpeedMultiplier = 1;
+      this.testAsteroidSizeMultiplier = 1;
+      this.testAsteroidSpawnRateMultiplier = 1;
+      this.testPowerUpSpawnRateMultiplier = 1;
+    }
+
     if (this.testModeEnabled === true) {
       this.testModeUsedDuringRun = true;
     }
@@ -228,13 +265,19 @@ export class Game {
     this.forceFieldTimer = 0;
     this.forceFieldPulseCooldown = 0;
     this.forceFieldPulseActive = 0;
+    this.orbitalLaserTimer = 0;
+    this.seekerMissilesTimer = 0;
+    this.seekerMissilesShotsRemaining = 0;
+    this.seekerMissilesFireCooldownSeconds = 0;
+    this.seekerMissilesFireIntervalSeconds = 0;
     this.missileBarrageTimer = 0;
     this.asteroidSplitterTimer = 0;
     this.spaceDustTimer = 0;
     this.spaceDustIntensity = 0;
     this.spaceDustParticles = [];
-    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, forceField: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
-    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, forceField: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.orbitalLaserStartAngleRadians = 0;
+    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
     this.isCountdownActive = false;
     this.countdownRemaining = 0;
     this.resetFrameTimestampNextFrame = false;
@@ -423,18 +466,25 @@ export class Game {
       return;
     }
 
-    const asteroidSpeedScale = (this.slowTimer > 0 ? 0.55 : 1) * (this.blackHoleTimer > 0 ? 1.35 : 1);
-    const hazardSizeScale = this.solarFlareTimer > 0 ? 1.3 : 1;
+    const testSpeedMultiplier = this.testModeEnabled === true ? this.testAsteroidSpeedMultiplier : 1;
+    const testSizeMultiplier = this.testModeEnabled === true ? this.testAsteroidSizeMultiplier : 1;
+    const testSpawnRateMultiplier = this.testModeEnabled === true ? this.testAsteroidSpawnRateMultiplier : 1;
+    const testPowerUpSpawnRateMultiplier = this.testModeEnabled === true ? this.testPowerUpSpawnRateMultiplier : 1;
+
+    const asteroidSpeedScale = ((this.slowTimer > 0 ? 0.55 : 1) * (this.blackHoleTimer > 0 ? 1.35 : 1)) * testSpeedMultiplier;
+    const hazardSizeScale = (this.solarFlareTimer > 0 ? 1.5 : 1) * testSizeMultiplier;
     const waveSettings = this.waveTimer > 0 ? this.waveSettings : undefined;
 
     const touchedBoundary = this.player.update(deltaSeconds, this.movementInput);
     if (touchedBoundary === true) {
       this.handleBoundaryHit();
     }
-    this.asteroidManager.update(deltaSeconds, asteroidSpeedScale, hazardSizeScale, waveSettings);
-    this.applyAsteroidSplitter();
-    this.powerUpManager.update(deltaSeconds);
+    this.asteroidManager.update(deltaSeconds, asteroidSpeedScale, hazardSizeScale, waveSettings, testSpawnRateMultiplier);
+    this.applyAsteroidSplitter(deltaSeconds);
+    this.powerUpManager.update(deltaSeconds, testPowerUpSpawnRateMultiplier);
     this.alienManager.update(deltaSeconds, asteroidSpeedScale, this.player);
+    this.applyOrbitalLaser(deltaSeconds);
+    this.updateSeekerMissiles(deltaSeconds);
     this.updateBullets(deltaSeconds);
     this.updateMissiles(deltaSeconds);
     this.updateHazardShootingStars(deltaSeconds);
@@ -450,10 +500,17 @@ export class Game {
     const prevSolarFlare = this.solarFlareTimer;
     const prevWave = this.waveTimer;
     const prevMultiplier = this.multiplierTimer;
+    const prevOrbitalLaser = this.orbitalLaserTimer;
+    const prevSeekerMissiles = this.seekerMissilesTimer;
     const prevMissileBarrage = this.missileBarrageTimer;
     const prevAsteroidSplitter = this.asteroidSplitterTimer;
+    const prevSpaceDust = this.spaceDustTimer;
     this.timeElapsedSeconds += deltaSeconds;
-    const negativeActive = this.blackHoleTimer > 0 || this.solarFlareTimer > 0 || this.waveTimer > 0 || this.asteroidSplitterTimer > 0;
+    const negativeActive = this.blackHoleTimer > 0
+      || this.solarFlareTimer > 0
+      || this.waveTimer > 0
+      || this.asteroidSplitterTimer > 0
+      || this.spaceDustTimer > 0;
     const timePoints = deltaSeconds * 5 * (negativeActive ? 2 : 1);
     this.addScore(timePoints, 'time');
     if (this.cloakTimer > 0) {
@@ -467,6 +524,12 @@ export class Game {
     }
     if (this.forceFieldTimer > 0) {
       this.powerupUptime.forceField += deltaSeconds;
+    }
+    if (this.orbitalLaserTimer > 0) {
+      this.powerupUptime.orbitalLaser += deltaSeconds;
+    }
+    if (this.seekerMissilesTimer > 0) {
+      this.powerupUptime.seekerMissiles += deltaSeconds;
     }
     if (this.missileBarrageTimer > 0) {
       this.powerupUptime.missileBarrage += deltaSeconds;
@@ -524,6 +587,20 @@ export class Game {
       this.forceFieldTimer -= deltaSeconds;
       if (this.forceFieldTimer < 0) {
         this.forceFieldTimer = 0;
+      }
+    }
+
+    if (this.orbitalLaserTimer > 0) {
+      this.orbitalLaserTimer -= deltaSeconds;
+      if (this.orbitalLaserTimer < 0) {
+        this.orbitalLaserTimer = 0;
+      }
+    }
+
+    if (this.seekerMissilesTimer > 0) {
+      this.seekerMissilesTimer -= deltaSeconds;
+      if (this.seekerMissilesTimer < 0) {
+        this.seekerMissilesTimer = 0;
       }
     }
 
@@ -599,8 +676,18 @@ export class Game {
     if (prevWave > 0 && this.waveTimer <= 0) {
       this.addScore(200, 'negative');
     }
+    if (prevSpaceDust > 0 && this.spaceDustTimer <= 0) {
+      this.addScore(200, 'negative');
+    }
     if (prevMultiplier > 0 && this.multiplierTimer <= 0) {
       // no bonus for multiplier ending
+    }
+    if (prevOrbitalLaser > 0 && this.orbitalLaserTimer <= 0 && this.isGameOver === false) {
+      this.updateStatus('Orbital laser offline.');
+    }
+    if (prevSeekerMissiles > 0 && this.seekerMissilesTimer <= 0 && this.isGameOver === false) {
+      this.seekerMissilesShotsRemaining = 0;
+      this.updateStatus('Seeker missiles offline.');
     }
     if (prevMissileBarrage > 0 && this.missileBarrageTimer <= 0 && this.isGameOver === false) {
       this.launchMissileBarrage();
@@ -1010,8 +1097,182 @@ export class Game {
     });
   }
 
-  // Splits asteroids into smaller fragments after they cross a threshold while the splitter powerup is active.
-  applyAsteroidSplitter() {
+  // Computes the current orbital laser beam segment (start/end points + angle).
+  getOrbitalLaserBeamSegment() {
+    if (this.orbitalLaserTimer <= 0) {
+      return null;
+    }
+    const durationSeconds = this.durationLookup.orbitalLaser;
+    if (durationSeconds <= 0) {
+      return null;
+    }
+
+    const elapsedSeconds = Math.max(0, durationSeconds - this.orbitalLaserTimer);
+    const progress = Math.max(0, Math.min(1, elapsedSeconds / durationSeconds));
+    const pulseCount = 3;
+    const pulseWindowSeconds = durationSeconds / pulseCount;
+    const pulseIndex = Math.min(pulseCount - 1, Math.floor(elapsedSeconds / pulseWindowSeconds));
+    const timeIntoWindowSeconds = elapsedSeconds - pulseIndex * pulseWindowSeconds;
+
+    // The orbital laser only fires during a short "pulse" window, then pauses.
+    const minActiveSeconds = Math.min(0.6, pulseWindowSeconds);
+    const maxActiveSeconds = Math.max(minActiveSeconds, pulseWindowSeconds * 0.42);
+    const desiredActiveSeconds = pulseWindowSeconds * 0.32;
+    const activeSeconds = Math.max(minActiveSeconds, Math.min(maxActiveSeconds, desiredActiveSeconds));
+    if (timeIntoWindowSeconds > activeSeconds) {
+      return null;
+    }
+
+    const pulseProgress = Math.max(0, Math.min(1, timeIntoWindowSeconds / activeSeconds));
+    const angleRadians = this.orbitalLaserStartAngleRadians + pulseIndex * Math.PI * 2 + pulseProgress * Math.PI * 2;
+    const directionX = Math.cos(angleRadians);
+    const directionY = Math.sin(angleRadians);
+
+    const playerX = this.player.positionX;
+    const playerY = this.player.positionY;
+    const baseRadius = Math.max(this.player.width, this.player.height) * 0.58;
+    const beamLength = Math.max(this.canvas.width, this.canvas.height) * 1.6;
+
+    const startX = playerX + directionX * baseRadius;
+    const startY = playerY + directionY * baseRadius;
+    const endX = playerX + directionX * beamLength;
+    const endY = playerY + directionY * beamLength;
+
+    return { startX, startY, endX, endY, angleRadians, progress, pulseIndex, pulseProgress };
+  }
+
+  // Applies the orbital laser beam to hazards while it is active.
+  applyOrbitalLaser(deltaSeconds) {
+    if (this.orbitalLaserTimer <= 0) {
+      return;
+    }
+    if (this.asteroidManager.asteroids.length === 0 && this.alienManager.aliens.length === 0) {
+      return;
+    }
+
+    const beamSegment = this.getOrbitalLaserBeamSegment();
+    if (beamSegment === null) {
+      return;
+    }
+
+    const beamThickness = Math.max(10, Math.min(18, Math.max(this.player.width, this.player.height) * 0.12));
+    const maxAsteroidDestroysPerFrame = 8;
+    const maxAlienDestroysPerFrame = 3;
+    let destroyedAsteroidsThisFrame = 0;
+    let destroyedAliensThisFrame = 0;
+
+    const remainingAsteroids = [];
+    for (const asteroid of this.asteroidManager.asteroids) {
+      if (destroyedAsteroidsThisFrame >= maxAsteroidDestroysPerFrame) {
+        remainingAsteroids.push(asteroid);
+        continue;
+      }
+
+      const bounds = asteroid.getBounds();
+      const centerX = bounds.left + bounds.width * 0.5;
+      const centerY = bounds.top + bounds.height * 0.5;
+      const radius = Math.max(bounds.width, bounds.height) * 0.5;
+      const distance = this.getDistancePointToSegment(
+        centerX,
+        centerY,
+        beamSegment.startX,
+        beamSegment.startY,
+        beamSegment.endX,
+        beamSegment.endY
+      );
+      if (distance <= radius + beamThickness) {
+        destroyedAsteroidsThisFrame += 1;
+        this.destroyedCount += 1;
+        this.addScore(120, 'destroyed');
+        this.explosions.push(new Explosion(asteroid.positionX, asteroid.positionY));
+        continue;
+      }
+      remainingAsteroids.push(asteroid);
+    }
+    this.asteroidManager.asteroids = remainingAsteroids;
+
+    if (this.alienManager.aliens.length === 0) {
+      return;
+    }
+
+    const destroyedAliens = new Set();
+    const remainingAliens = [];
+    for (const alien of this.alienManager.aliens) {
+      if (destroyedAliensThisFrame >= maxAlienDestroysPerFrame) {
+        remainingAliens.push(alien);
+        continue;
+      }
+
+      const bounds = alien.getBounds();
+      const centerX = bounds.left + bounds.width * 0.5;
+      const centerY = bounds.top + bounds.height * 0.5;
+      const radius = Math.max(bounds.width, bounds.height) * 0.5;
+      const distance = this.getDistancePointToSegment(
+        centerX,
+        centerY,
+        beamSegment.startX,
+        beamSegment.startY,
+        beamSegment.endX,
+        beamSegment.endY
+      );
+      if (distance <= radius + beamThickness) {
+        destroyedAliensThisFrame += 1;
+        destroyedAliens.add(alien);
+        this.destroyedCount += 1;
+        this.addScore(160, 'destroyed');
+        this.explosions.push(new Explosion(alien.positionX, alien.positionY));
+        continue;
+      }
+      remainingAliens.push(alien);
+    }
+    this.alienManager.aliens = remainingAliens;
+
+    if (destroyedAliens.size > 0 && this.alienManager.lasers.length > 0) {
+      this.alienManager.lasers = this.alienManager.lasers.filter((laser) => {
+        if (laser.owner === null || laser.owner === undefined) {
+          return true;
+        }
+        return destroyedAliens.has(laser.owner) === false;
+      });
+    }
+  }
+
+  // Auto-launches periodic seeker missiles while the powerup is active.
+  updateSeekerMissiles(deltaSeconds) {
+    if (this.seekerMissilesTimer <= 0) {
+      return;
+    }
+    if (this.seekerMissilesShotsRemaining <= 0) {
+      return;
+    }
+
+    this.seekerMissilesFireCooldownSeconds -= deltaSeconds;
+    if (this.seekerMissilesFireCooldownSeconds > 0) {
+      return;
+    }
+
+    const targets = [...this.asteroidManager.asteroids, ...this.alienManager.aliens];
+    if (targets.length === 0) {
+      // Don't consume a shot; just try again soon.
+      this.seekerMissilesFireCooldownSeconds = 0.35;
+      return;
+    }
+
+    const randomIndex = Math.floor(Math.random() * targets.length);
+    const target = targets[randomIndex];
+    const startX = this.player.positionX + this.player.width * 0.35;
+    const startY = this.player.positionY + (Math.random() - 0.5) * this.player.height * 0.6;
+    this.missiles.push(new Missile(startX, startY, target));
+    this.seekerMissilesShotsRemaining -= 1;
+
+    const jitter = 0.8 + Math.random() * 0.4;
+    const interval = this.seekerMissilesFireIntervalSeconds > 0 ? this.seekerMissilesFireIntervalSeconds : 1.8;
+    this.seekerMissilesFireCooldownSeconds = interval * jitter;
+    this.updateHud();
+  }
+
+  // Splits asteroids into smaller fragments at random moments (before mid-screen) while splitter is active.
+  applyAsteroidSplitter(deltaSeconds) {
     if (this.asteroidSplitterTimer <= 0) {
       return;
     }
@@ -1019,16 +1280,23 @@ export class Game {
       return;
     }
 
-    const thresholdX = this.canvas.width * 0.52;
-    const maxSplitsPerFrame = 2;
+    const midScreenX = this.canvas.width * 0.5;
+    const earliestSplitX = this.canvas.width * 0.95;
+    const maxSplitsPerFrame = 3;
     let splits = 0;
+    const splitRatePerSecond = 0.55;
+    const splitChance = 1 - Math.exp(-splitRatePerSecond * deltaSeconds);
 
     const remainingAsteroids = [];
     for (const asteroid of this.asteroidManager.asteroids) {
       const splitDepth = asteroid.splitDepth ?? 0;
       const canSplit = splitDepth < 1;
       const largeEnough = (asteroid.radiusX ?? 0) > 24;
-      if (splits < maxSplitsPerFrame && canSplit === true && largeEnough === true && asteroid.positionX <= thresholdX) {
+      const isPastEntry = asteroid.positionX <= earliestSplitX;
+      const isBeforeMid = asteroid.positionX >= midScreenX;
+      const shouldSplitThisFrame = Math.random() < splitChance;
+
+      if (splits < maxSplitsPerFrame && canSplit === true && largeEnough === true && isPastEntry === true && isBeforeMid === true && shouldSplitThisFrame === true) {
         splits += 1;
 
         // Small crack pop when shattering (no score; this is a negative effect).
@@ -1036,8 +1304,8 @@ export class Game {
 
         const fragments = [];
         const fragmentScale = 0.58;
-        const separation = Math.max(18, (asteroid.radiusY ?? 30) * 0.4);
         const baseSpeed = this.asteroidManager.baseSpeedStart ?? 240;
+        const baseVerticalSpeed = 240 + Math.random() * 380;
 
         for (const sign of [-1, 1]) {
           const fragment = new Asteroid(this.canvas.width, this.canvas.height, baseSpeed, asteroid.spriteImage, 1);
@@ -1047,18 +1315,16 @@ export class Game {
           fragment.radiusY = (asteroid.radiusY ?? 30) * fragmentScale;
           fragment.positionX = asteroid.positionX;
 
-          const jitter = (Math.random() - 0.5) * 22;
-          const desiredY = asteroid.positionY + sign * separation + jitter;
-          const minY = fragment.radiusY + 6;
-          const maxY = this.canvas.height - fragment.radiusY - 6;
-          fragment.baseY = Math.max(minY, Math.min(maxY, desiredY));
+          const jitter = (Math.random() - 0.5) * 26;
+          fragment.baseY = asteroid.positionY + jitter;
           fragment.positionY = fragment.baseY;
+          fragment.velocityY = sign * baseVerticalSpeed * (0.75 + Math.random() * 0.55);
 
-          fragment.speed = (asteroid.speed ?? 260) * (1.02 + Math.random() * 0.22);
+          fragment.speed = (asteroid.speed ?? 260) * (1.35 + Math.random() * 0.55);
           fragment.rotation = (asteroid.rotation ?? 0) + (Math.random() - 0.5) * 1.2;
-          fragment.rotationSpeed = (Math.random() - 0.5) * 1.8;
+          fragment.rotationSpeed = (Math.random() - 0.5) * 4.2;
           fragment.oscPhase = (asteroid.oscPhase ?? 0) + Math.random() * 1.5;
-          fragment.oscSpeed = (asteroid.oscSpeed ?? 1) * (1.05 + Math.random() * 0.35);
+          fragment.oscSpeed = (asteroid.oscSpeed ?? 1) * (1.15 + Math.random() * 0.6);
           fragment.activeSizeScale = asteroid.activeSizeScale ?? 1;
           fragment.splitDepth = splitDepth + 1;
           fragments.push(fragment);
@@ -1132,6 +1398,72 @@ export class Game {
     return particles;
   }
 
+  // Draws the orbital laser beam while active.
+  drawOrbitalLaser() {
+    if (this.orbitalLaserTimer <= 0) {
+      return;
+    }
+    const beamSegment = this.getOrbitalLaserBeamSegment();
+    if (beamSegment === null) {
+      return;
+    }
+
+    const playerX = this.player.positionX;
+    const playerY = this.player.positionY;
+    const beamThickness = Math.max(10, Math.min(18, Math.max(this.player.width, this.player.height) * 0.12));
+
+    const pulseProgress = beamSegment.pulseProgress ?? 0;
+    const pulseShape = Math.sin(pulseProgress * Math.PI);
+    const alpha = 0.35 + 0.55 * pulseShape;
+
+    this.context.save();
+    this.context.globalCompositeOperation = 'screen';
+
+    // Player pulse ring.
+    const ringRadius = Math.max(this.player.width, this.player.height) * (0.8 + 0.25 * pulseProgress);
+    this.context.globalAlpha = 0.08 + 0.28 * pulseShape;
+    this.context.strokeStyle = 'rgba(244, 114, 182, 0.95)';
+    this.context.lineWidth = 3;
+    this.context.beginPath();
+    this.context.arc(playerX, playerY, ringRadius, 0, Math.PI * 2);
+    this.context.stroke();
+
+    // Outer glow beam.
+    this.context.globalAlpha = alpha;
+    const outerGradient = this.context.createLinearGradient(beamSegment.startX, beamSegment.startY, beamSegment.endX, beamSegment.endY);
+    outerGradient.addColorStop(0, 'rgba(244, 114, 182, 0.95)');
+    outerGradient.addColorStop(0.5, 'rgba(244, 114, 182, 0.35)');
+    outerGradient.addColorStop(1, 'rgba(244, 114, 182, 0)');
+    this.context.strokeStyle = outerGradient;
+    this.context.lineWidth = beamThickness * 2.1;
+    this.context.lineCap = 'round';
+    this.context.beginPath();
+    this.context.moveTo(beamSegment.startX, beamSegment.startY);
+    this.context.lineTo(beamSegment.endX, beamSegment.endY);
+    this.context.stroke();
+
+    // Hot core beam.
+    const coreGradient = this.context.createLinearGradient(beamSegment.startX, beamSegment.startY, beamSegment.endX, beamSegment.endY);
+    coreGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+    coreGradient.addColorStop(0.25, 'rgba(255, 255, 255, 0.55)');
+    coreGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    this.context.strokeStyle = coreGradient;
+    this.context.lineWidth = Math.max(2, beamThickness * 0.55);
+    this.context.beginPath();
+    this.context.moveTo(beamSegment.startX, beamSegment.startY);
+    this.context.lineTo(beamSegment.endX, beamSegment.endY);
+    this.context.stroke();
+
+    // Emitter glow at the base point (rotates around the player).
+    this.context.globalAlpha = 0.25 + 0.75 * pulseShape;
+    this.context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    this.context.beginPath();
+    this.context.arc(beamSegment.startX, beamSegment.startY, Math.max(3, beamThickness * 0.45), 0, Math.PI * 2);
+    this.context.fill();
+
+    this.context.restore();
+  }
+
   // Draws the force field pulse when active.
   drawForceFieldPulse() {
     if (this.forceFieldPulseActive <= 0) {
@@ -1170,6 +1502,7 @@ export class Game {
     const isCloaked = this.cloakTimer > 0;
     const powerupRatios = this.getPowerupRatios();
     this.player.draw(this.context, isCloaked, flashIntensity, powerupRatios);
+    this.drawOrbitalLaser();
     this.drawHazardShootingStars();
     this.drawExplosions();
     this.drawForceFieldPulse();
@@ -1546,18 +1879,19 @@ export class Game {
     const playerRadius = Math.min(this.player.width, this.player.height) * 0.35;
     for (let index = this.hazardShootingStars.length - 1; index >= 0; index -= 1) {
       const shootingStar = this.hazardShootingStars[index];
-      // Broad phase.
-      if (this.isBoundingOverlap(playerBounds, shootingStar.getBounds()) !== true) {
+      // Broad phase (head only; trail is visual).
+      if (this.isBoundingOverlap(playerBounds, shootingStar.getHeadBounds()) !== true) {
         continue;
       }
 
-      // Narrow phase: distance from player center to the streak segment.
+      // Narrow phase: head circle only.
       const headX = shootingStar.positionX;
       const headY = shootingStar.positionY;
-      const tailPoint = shootingStar.getTailPoint();
-      const distance = this.getDistancePointToSegment(playerX, playerY, headX, headY, tailPoint.x, tailPoint.y);
-      const starRadius = shootingStar.thickness * 0.7;
-      if (distance <= playerRadius + starRadius) {
+      const deltaX = playerX - headX;
+      const deltaY = playerY - headY;
+      const distance = Math.hypot(deltaX, deltaY);
+      const headRadius = shootingStar.getHeadRadius();
+      if (distance <= playerRadius + headRadius) {
         this.hazardShootingStars.splice(index, 1);
         this.explosions.push(new Explosion(shootingStar.positionX, shootingStar.positionY, { kind: 'meteor' }));
         this.startCameraShake(14, 0.35);
@@ -1638,6 +1972,27 @@ export class Game {
       this.forceFieldPulseCooldown = 0;
       this.forceFieldPulseActive = 0;
       this.updateStatus('Force field online! Pulses will clear nearby asteroids.');
+      this.updateHud();
+      return;
+    }
+
+    if (powerUp.type === 'orbitalLaser') {
+      this.orbitalLaserTimer = powerUp.config.durationSeconds;
+      this.durationLookup.orbitalLaser = powerUp.config.durationSeconds;
+      this.orbitalLaserStartAngleRadians = Math.random() * Math.PI * 2;
+      this.updateStatus('Orbital laser online! Stay close and let it sweep.');
+      this.updateHud();
+      return;
+    }
+
+    if (powerUp.type === 'seekerMissiles') {
+      this.seekerMissilesTimer = powerUp.config.durationSeconds;
+      this.durationLookup.seekerMissiles = powerUp.config.durationSeconds;
+      const totalShots = 3;
+      this.seekerMissilesShotsRemaining = totalShots;
+      this.seekerMissilesFireIntervalSeconds = powerUp.config.durationSeconds / totalShots;
+      this.seekerMissilesFireCooldownSeconds = Math.min(0.9, this.seekerMissilesFireIntervalSeconds * 0.6);
+      this.updateStatus('Seeker missiles armed. Missiles will auto-launch.');
       this.updateHud();
       return;
     }
@@ -1773,6 +2128,8 @@ export class Game {
       blaster: this.durationLookup.blaster > 0 ? this.blasterTimer / this.durationLookup.blaster : 0,
       slow: this.durationLookup.slow > 0 ? this.slowTimer / this.durationLookup.slow : 0,
       forceField: this.durationLookup.forceField > 0 ? this.forceFieldTimer / this.durationLookup.forceField : 0,
+      orbitalLaser: this.durationLookup.orbitalLaser > 0 ? this.orbitalLaserTimer / this.durationLookup.orbitalLaser : 0,
+      seekerMissiles: this.durationLookup.seekerMissiles > 0 ? this.seekerMissilesTimer / this.durationLookup.seekerMissiles : 0,
       missileBarrage: this.durationLookup.missileBarrage > 0 ? this.missileBarrageTimer / this.durationLookup.missileBarrage : 0,
       asteroidSplitter: this.durationLookup.asteroidSplitter > 0 ? this.asteroidSplitterTimer / this.durationLookup.asteroidSplitter : 0,
       spaceDust: this.durationLookup.spaceDust > 0 ? this.spaceDustTimer / this.durationLookup.spaceDust : 0,

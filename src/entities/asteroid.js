@@ -7,6 +7,8 @@ export class Asteroid {
     this.radiusX = size * this.scale;
     this.radiusY = size * (0.8 + Math.random() * 0.35) * this.scale;
     this.positionX = canvasWidth + this.radiusX + 20;
+    this.canvasWidth = canvasWidth;
+    this.canvasHeight = canvasHeight;
     const availableHeight = canvasHeight - this.radiusY * 2;
     this.baseY = this.radiusY + Math.random() * Math.max(availableHeight, 10);
     this.positionY = this.baseY;
@@ -16,6 +18,13 @@ export class Asteroid {
     this.spriteImage = spriteImage;
     this.oscPhase = Math.random() * Math.PI * 2;
     this.oscSpeed = 0.8 + Math.random() * 0.6;
+    this.velocityY = 0;
+  }
+
+  // Updates cached canvas size.
+  setCanvasSize(canvasWidth, canvasHeight) {
+    this.canvasWidth = canvasWidth;
+    this.canvasHeight = canvasHeight;
   }
 
   // Updates asteroid position and rotation.
@@ -26,6 +35,11 @@ export class Asteroid {
     this.positionX -= positionDeltaX;
     const rotationDelta = this.rotationSpeed * deltaSeconds;
     this.rotation += rotationDelta;
+
+    if (typeof this.velocityY === 'number' && this.velocityY !== 0) {
+      const positionDeltaY = this.velocityY * deltaSeconds;
+      this.baseY += positionDeltaY;
+    }
 
     if (waveSettings !== undefined && waveSettings.amplitude > 0) {
       this.oscPhase += this.oscSpeed * waveSettings.speed * deltaSeconds;
@@ -54,9 +68,22 @@ export class Asteroid {
 
   // Indicates whether the asteroid has left the screen.
   isOffScreen() {
-    const offScreenThreshold = -this.radiusX - 30;
+    const sizeScale = this.activeSizeScale ?? 1;
+    const offScreenThreshold = -this.radiusX * sizeScale - 30;
     if (this.positionX < offScreenThreshold) {
       return true;
+    }
+
+    // If an asteroid drifts vertically out of view (e.g. splitter fragments), allow it to naturally exit.
+    const canvasHeight = this.canvasHeight ?? 0;
+    if (canvasHeight > 0) {
+      const verticalPadding = this.radiusY * sizeScale + 80;
+      if (this.positionY < -verticalPadding) {
+        return true;
+      }
+      if (this.positionY > canvasHeight + verticalPadding) {
+        return true;
+      }
     }
     return false;
   }

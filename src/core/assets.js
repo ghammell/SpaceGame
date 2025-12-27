@@ -19,6 +19,21 @@ export async function loadSpacemanSprite() {
   return loadedImage;
 }
 
+// Loads all spaceman damage variants (normal + damaged + critical).
+export async function loadSpacemanSprites() {
+  const normalUrl = new URL('../../assets/spaceman.svg', import.meta.url).href;
+  const damagedUrl = new URL('../../assets/spaceman_damaged.svg', import.meta.url).href;
+  const criticalUrl = new URL('../../assets/spaceman_critical.svg', import.meta.url).href;
+
+  const [normal, damaged, critical] = await Promise.all([
+    loadImageFromSource(normalUrl),
+    loadImageFromSource(damagedUrl),
+    loadImageFromSource(criticalUrl)
+  ]);
+
+  return { normal, damaged, critical };
+}
+
 // Loads all asteroid sprite variants.
 export async function loadAsteroidSprites() {
   const asteroidPaths = [
@@ -77,6 +92,8 @@ export async function loadPowerUpIcons() {
     ['blaster', '../../assets/powerups/blaster.svg'],
     ['slow', '../../assets/powerups/slow.svg'],
     ['forceField', '../../assets/powerups/forcefield.svg'],
+    ['orbitalLaser', '../../assets/powerups/orbitallaser.svg'],
+    ['seekerMissiles', '../../assets/powerups/seeker.svg'],
     ['missileBarrage', '../../assets/powerups/missiles.svg'],
     ['asteroidSplitter', '../../assets/powerups/splitter.svg'],
     ['spaceDust', '../../assets/powerups/spacedust.svg'],

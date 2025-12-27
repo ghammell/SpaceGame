@@ -6,6 +6,8 @@ const powerUpConfigs = {
   blaster: { color: '#ffde59', label: 'B', durationSeconds: 9 },
   slow: { color: '#b39cff', label: 'S', durationSeconds: 7 },
   forceField: { color: '#60a5fa', label: 'F', durationSeconds: 8 },
+  orbitalLaser: { color: '#f472b6', label: 'OL', durationSeconds: 7 },
+  seekerMissiles: { color: '#a78bfa', label: 'HM', durationSeconds: 7 },
   missileBarrage: { color: '#93c5fd', label: 'MB', durationSeconds: 6 },
   asteroidSplitter: { color: '#67f4c1', label: 'AS', durationSeconds: 8, isNegative: true },
   spaceDust: { color: '#fbbf24', label: 'D', durationSeconds: 6, isNegative: true },
@@ -115,14 +117,20 @@ export function getRandomPowerUpType() {
   }
   const roll = Math.random();
   if (roll < 0.5) {
-    // Positive pool: original weighted distribution + missile barrage.
+    // Positive pool: original weighted distribution + missile barrage + orbital laser + seeker missiles.
     // - missileBarrage: 10% of positives
+    // - orbitalLaser: 8% of positives
+    // - seekerMissiles: 8% of positives
     //
     // Approx overall odds (normal play):
     // - missileBarrage: 50% * 10% = ~5% (about 1 in 20 powerups)
+    // - orbitalLaser: 50% * 8% = ~4% (about 1 in 25 powerups)
+    // - seekerMissiles: 50% * 8% = ~4% (about 1 in 25 powerups)
     const positiveWeight = Math.random();
     const missileShare = 0.10;
-    const remainingShare = 1 - missileShare;
+    const orbitalLaserShare = 0.08;
+    const seekerMissilesShare = 0.08;
+    const remainingShare = 1 - missileShare - orbitalLaserShare - seekerMissilesShare;
 
     const extraLifeCutoff = 0.28 * remainingShare;
     const cloakCutoff = (0.28 + 0.22) * remainingShare;
@@ -137,6 +145,8 @@ export function getRandomPowerUpType() {
     if (positiveWeight < slowCutoff) return 'slow';
     if (positiveWeight < forceFieldCutoff) return 'forceField';
     if (positiveWeight < multiplierCutoff) return 'multiplier';
+    if (positiveWeight < remainingShare + seekerMissilesShare) return 'seekerMissiles';
+    if (positiveWeight < remainingShare + orbitalLaserShare) return 'orbitalLaser';
     return 'missileBarrage';
   }
   // Negative pool: original weighted distribution + asteroid splitter.

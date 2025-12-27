@@ -1,5 +1,5 @@
 import { Game } from './core/game.js';
-import { loadSpacemanSprite, loadAsteroidSprites, loadAlienSprites, loadPowerUpIcons } from './core/assets.js';
+import { loadSpacemanSprites, loadAsteroidSprites, loadAlienSprites, loadPowerUpIcons } from './core/assets.js';
 
 function ensureElement(id) {
   const existing = document.getElementById(id);
@@ -31,6 +31,14 @@ const testModeOverlay = document.getElementById('testModeOverlay');
 const testModeEnabledCheckbox = document.getElementById('testModeEnabled');
 const testModePowerupCheckboxes = document.querySelectorAll('.testmode-powerup');
 const testModeInfiniteLivesCheckbox = document.getElementById('testModeInfiniteLives');
+const testAsteroidSpeedMultiplierSlider = document.getElementById('testAsteroidSpeedMultiplier');
+const testAsteroidSizeMultiplierSlider = document.getElementById('testAsteroidSizeMultiplier');
+const testAsteroidSpawnRateMultiplierSlider = document.getElementById('testAsteroidSpawnRateMultiplier');
+const testAsteroidSpeedValue = document.getElementById('testAsteroidSpeedValue');
+const testAsteroidSizeValue = document.getElementById('testAsteroidSizeValue');
+const testAsteroidSpawnRateValue = document.getElementById('testAsteroidSpawnRateValue');
+const testPowerupSpawnRateMultiplierSlider = document.getElementById('testPowerupSpawnRateMultiplier');
+const testPowerupSpawnRateValue = document.getElementById('testPowerupSpawnRateValue');
 const TEST_MODE_STORAGE_KEY = 'orbitalTestModeConfig';
 const startOverlay = document.getElementById('startOverlay');
 const startPlayButton = document.getElementById('startPlayButton');
@@ -41,6 +49,7 @@ const pauseResumeButton = document.getElementById('pauseResumeButton');
 let instructionsOpenedFromStart = false;
 let testModeOpenedFromStart = false;
 const infoRowElement = document.querySelector('.info-row');
+const desktopHeaderElement = document.getElementById('desktopHeader');
 const summaryFields = {
   score: document.getElementById('summaryScore'),
   timeScore: document.getElementById('summaryTimeScore'),
@@ -69,8 +78,14 @@ function updateInfoRowVisibility(game) {
   const isTouchDevice = game.detectTouchFirstDevice();
   if (isTouchDevice === true) {
     infoRowElement.classList.add('touch-hidden');
+    if (desktopHeaderElement !== null) {
+      desktopHeaderElement.classList.add('touch-hidden');
+    }
   } else {
     infoRowElement.classList.remove('touch-hidden');
+    if (desktopHeaderElement !== null) {
+      desktopHeaderElement.classList.remove('touch-hidden');
+    }
   }
 }
 
@@ -79,7 +94,8 @@ function applyUiPadding(game) {
   const isTouchDevice = game.detectTouchFirstDevice();
   const reservedBottomPadding = isTouchDevice === true ? 0 : 12;
   const infoRowHeight = infoRowElement !== null ? infoRowElement.offsetHeight : 0;
-  const uiPadding = infoRowHeight + reservedBottomPadding;
+  const headerHeight = isTouchDevice === true || desktopHeaderElement === null ? 0 : desktopHeaderElement.offsetHeight;
+  const uiPadding = infoRowHeight + headerHeight + reservedBottomPadding;
   game.setUiPadding(uiPadding);
 }
 
@@ -155,16 +171,32 @@ function loadTestModeConfig() {
     const stored = localStorage.getItem(TEST_MODE_STORAGE_KEY);
     if (stored !== null) {
       const parsed = JSON.parse(stored);
+      const asteroidSpeedMultiplier = Number.parseFloat(parsed.asteroidSpeedMultiplier);
+      const asteroidSizeMultiplier = Number.parseFloat(parsed.asteroidSizeMultiplier);
+      const asteroidSpawnRateMultiplier = Number.parseFloat(parsed.asteroidSpawnRateMultiplier);
+      const powerUpSpawnRateMultiplier = Number.parseFloat(parsed.powerUpSpawnRateMultiplier);
       return {
         enabled: Boolean(parsed.enabled),
         infiniteLives: Boolean(parsed.infiniteLives),
-        allowedPowerups: Array.isArray(parsed.allowedPowerups) ? parsed.allowedPowerups : null
+        allowedPowerups: Array.isArray(parsed.allowedPowerups) ? parsed.allowedPowerups : null,
+        asteroidSpeedMultiplier: Number.isFinite(asteroidSpeedMultiplier) ? asteroidSpeedMultiplier : 1,
+        asteroidSizeMultiplier: Number.isFinite(asteroidSizeMultiplier) ? asteroidSizeMultiplier : 1,
+        asteroidSpawnRateMultiplier: Number.isFinite(asteroidSpawnRateMultiplier) ? asteroidSpawnRateMultiplier : 1,
+        powerUpSpawnRateMultiplier: Number.isFinite(powerUpSpawnRateMultiplier) ? powerUpSpawnRateMultiplier : 1
       };
     }
   } catch (error) {
     // ignore parse/storage errors
   }
-  return { enabled: false, infiniteLives: false, allowedPowerups: null };
+  return {
+    enabled: false,
+    infiniteLives: false,
+    allowedPowerups: null,
+    asteroidSpeedMultiplier: 1,
+    asteroidSizeMultiplier: 1,
+    asteroidSpawnRateMultiplier: 1,
+    powerUpSpawnRateMultiplier: 1
+  };
 }
 
 function saveTestModeConfig(config) {
@@ -186,6 +218,137 @@ function syncTestModeUIFromConfig(config) {
   testModePowerupCheckboxes.forEach((box) => {
     box.checked = allowedSet.size > 0 ? allowedSet.has(box.value) : false;
   });
+
+  if (testAsteroidSpeedMultiplierSlider !== null) {
+    testAsteroidSpeedMultiplierSlider.value = String(config.asteroidSpeedMultiplier ?? 1);
+  }
+  if (testAsteroidSizeMultiplierSlider !== null) {
+    testAsteroidSizeMultiplierSlider.value = String(config.asteroidSizeMultiplier ?? 1);
+  }
+  if (testAsteroidSpawnRateMultiplierSlider !== null) {
+    testAsteroidSpawnRateMultiplierSlider.value = String(config.asteroidSpawnRateMultiplier ?? 1);
+  }
+  if (testPowerupSpawnRateMultiplierSlider !== null) {
+    testPowerupSpawnRateMultiplierSlider.value = String(config.powerUpSpawnRateMultiplier ?? 1);
+  }
+
+  updateTestModeMultiplierLabels();
+}
+
+// Updates the test mode slider value labels.
+function updateTestModeMultiplierLabels() {
+  if (testAsteroidSpeedMultiplierSlider !== null && testAsteroidSpeedValue !== null) {
+    const value = Number.parseFloat(testAsteroidSpeedMultiplierSlider.value);
+    const display = Number.isFinite(value) ? value.toFixed(2) : '1.00';
+    testAsteroidSpeedValue.textContent = `${display}×`;
+  }
+  if (testAsteroidSizeMultiplierSlider !== null && testAsteroidSizeValue !== null) {
+    const value = Number.parseFloat(testAsteroidSizeMultiplierSlider.value);
+    const display = Number.isFinite(value) ? value.toFixed(2) : '1.00';
+    testAsteroidSizeValue.textContent = `${display}×`;
+  }
+  if (testAsteroidSpawnRateMultiplierSlider !== null && testAsteroidSpawnRateValue !== null) {
+    const value = Number.parseFloat(testAsteroidSpawnRateMultiplierSlider.value);
+    const display = Number.isFinite(value) ? value.toFixed(2) : '1.00';
+    testAsteroidSpawnRateValue.textContent = `${display}×`;
+  }
+  if (testPowerupSpawnRateMultiplierSlider !== null && testPowerupSpawnRateValue !== null) {
+    const value = Number.parseFloat(testPowerupSpawnRateMultiplierSlider.value);
+    const display = Number.isFinite(value) ? value.toFixed(2) : '1.00';
+    testPowerupSpawnRateValue.textContent = `${display}×`;
+  }
+}
+
+function updateTestModeButtonState(enabled) {
+  if (toggleTestModeButton !== null) {
+    if (enabled === true) {
+      toggleTestModeButton.classList.add('test-enabled');
+    } else {
+      toggleTestModeButton.classList.remove('test-enabled');
+    }
+  }
+  if (startTestModeButton !== null) {
+    if (enabled === true) {
+      startTestModeButton.classList.add('test-enabled');
+    } else {
+      startTestModeButton.classList.remove('test-enabled');
+    }
+  }
+}
+
+function isTestModeSettingsLocked(game) {
+  if (game === null || game === undefined) {
+    return true;
+  }
+  if (game.isRunning === true && game.isGameOver !== true) {
+    return true;
+  }
+  return false;
+}
+
+function buildTestModeConfigFromUi() {
+  const enabled = testModeEnabledCheckbox !== null && testModeEnabledCheckbox.checked === true;
+  const infiniteLives = testModeInfiniteLivesCheckbox !== null && testModeInfiniteLivesCheckbox.checked === true;
+  const allowed = [];
+  testModePowerupCheckboxes.forEach((box) => {
+    if (box.checked === true) {
+      allowed.push(box.value);
+    }
+  });
+  const asteroidSpeedMultiplier = testAsteroidSpeedMultiplierSlider !== null ? Number.parseFloat(testAsteroidSpeedMultiplierSlider.value) : 1;
+  const asteroidSizeMultiplier = testAsteroidSizeMultiplierSlider !== null ? Number.parseFloat(testAsteroidSizeMultiplierSlider.value) : 1;
+  const asteroidSpawnRateMultiplier = testAsteroidSpawnRateMultiplierSlider !== null ? Number.parseFloat(testAsteroidSpawnRateMultiplierSlider.value) : 1;
+  const powerUpSpawnRateMultiplier = testPowerupSpawnRateMultiplierSlider !== null ? Number.parseFloat(testPowerupSpawnRateMultiplierSlider.value) : 1;
+  return {
+    enabled,
+    allowedPowerups: allowed.length > 0 ? allowed : null,
+    infiniteLives,
+    asteroidSpeedMultiplier,
+    asteroidSizeMultiplier,
+    asteroidSpawnRateMultiplier,
+    powerUpSpawnRateMultiplier
+  };
+}
+
+function updateTestModeUiInteractivity(game) {
+  const enabled = testModeEnabledCheckbox !== null && testModeEnabledCheckbox.checked === true;
+  const isLocked = isTestModeSettingsLocked(game);
+  const disableSecondaryControls = enabled !== true || isLocked === true;
+
+  if (testModeEnabledCheckbox !== null) {
+    testModeEnabledCheckbox.disabled = isLocked === true;
+  }
+
+  if (testModeInfiniteLivesCheckbox !== null) {
+    testModeInfiniteLivesCheckbox.disabled = disableSecondaryControls === true;
+  }
+  testModePowerupCheckboxes.forEach((box) => {
+    box.disabled = disableSecondaryControls === true;
+  });
+  if (testAsteroidSpeedMultiplierSlider !== null) {
+    testAsteroidSpeedMultiplierSlider.disabled = disableSecondaryControls === true;
+  }
+  if (testAsteroidSizeMultiplierSlider !== null) {
+    testAsteroidSizeMultiplierSlider.disabled = disableSecondaryControls === true;
+  }
+  if (testAsteroidSpawnRateMultiplierSlider !== null) {
+    testAsteroidSpawnRateMultiplierSlider.disabled = disableSecondaryControls === true;
+  }
+  if (testPowerupSpawnRateMultiplierSlider !== null) {
+    testPowerupSpawnRateMultiplierSlider.disabled = disableSecondaryControls === true;
+  }
+}
+
+function persistAndApplyTestModeConfig(game) {
+  updateTestModeMultiplierLabels();
+  const config = buildTestModeConfigFromUi();
+  saveTestModeConfig(config);
+  updateTestModeButtonState(config.enabled === true);
+
+  if (isTestModeSettingsLocked(game) !== true) {
+    game.applyTestModeConfig(config);
+  }
+  updateTestModeUiInteractivity(game);
 }
 
 function setupInfoToggles(game) {
@@ -247,52 +410,55 @@ function setupTestModeUI(game) {
   if (toggleTestModeButton !== null && testModeOverlay !== null) {
     toggleTestModeButton.addEventListener('click', () => {
       game.pauseGame(false);
+      const storedConfig = loadTestModeConfig();
+      syncTestModeUIFromConfig(storedConfig);
+      updateTestModeUiInteractivity(game);
       showOverlay(testModeOverlay, toggleTestModeButton);
     });
   }
-  const markButtonState = (enabled) => {
-    if (toggleTestModeButton !== null) {
-      if (enabled === true) {
-        toggleTestModeButton.classList.add('test-enabled');
-      } else {
-        toggleTestModeButton.classList.remove('test-enabled');
-      }
-    }
-    if (startTestModeButton !== null) {
-      if (enabled === true) {
-        startTestModeButton.classList.add('test-enabled');
-      } else {
-        startTestModeButton.classList.remove('test-enabled');
-      }
-    }
-  };
-  const applyButton = document.getElementById('applyTestMode');
-  if (applyButton !== null) {
-    applyButton.addEventListener('click', () => {
-      const enabled = testModeEnabledCheckbox !== null && testModeEnabledCheckbox.checked === true;
-      const infiniteLives = testModeInfiniteLivesCheckbox !== null && testModeInfiniteLivesCheckbox.checked === true;
-      const allowed = [];
-      testModePowerupCheckboxes.forEach((box) => {
-        if (box.checked === true) {
-          allowed.push(box.value);
-        }
-      });
-      const config = { enabled, allowedPowerups: allowed.length > 0 ? allowed : null, infiniteLives };
-      saveTestModeConfig(config);
-      game.applyTestModeConfig(config);
-      const overlayButton = testModeOpenedFromStart === true ? startTestModeButton : toggleTestModeButton;
-      hideOverlay(testModeOverlay, overlayButton);
-      markButtonState(enabled);
-      if (testModeOpenedFromStart === true && startOverlay !== null && startOverlay.classList.contains('hidden') === true) {
-        startOverlay.classList.remove('hidden');
-        startOverlay.classList.add('visible');
-        testModeOpenedFromStart = false;
-      }
+
+  if (testModeEnabledCheckbox !== null) {
+    testModeEnabledCheckbox.addEventListener('change', () => {
+      persistAndApplyTestModeConfig(game);
     });
   }
+  if (testModeInfiniteLivesCheckbox !== null) {
+    testModeInfiniteLivesCheckbox.addEventListener('change', () => {
+      persistAndApplyTestModeConfig(game);
+    });
+  }
+  testModePowerupCheckboxes.forEach((box) => {
+    box.addEventListener('change', () => {
+      persistAndApplyTestModeConfig(game);
+    });
+  });
+
+  if (testAsteroidSpeedMultiplierSlider !== null) {
+    testAsteroidSpeedMultiplierSlider.addEventListener('input', () => {
+      persistAndApplyTestModeConfig(game);
+    });
+  }
+  if (testAsteroidSizeMultiplierSlider !== null) {
+    testAsteroidSizeMultiplierSlider.addEventListener('input', () => {
+      persistAndApplyTestModeConfig(game);
+    });
+  }
+  if (testAsteroidSpawnRateMultiplierSlider !== null) {
+    testAsteroidSpawnRateMultiplierSlider.addEventListener('input', () => {
+      persistAndApplyTestModeConfig(game);
+    });
+  }
+  if (testPowerupSpawnRateMultiplierSlider !== null) {
+    testPowerupSpawnRateMultiplierSlider.addEventListener('input', () => {
+      persistAndApplyTestModeConfig(game);
+    });
+  }
+
   // initialize state from stored config on load
   const initialConfig = loadTestModeConfig();
-  markButtonState(initialConfig.enabled);
+  updateTestModeButtonState(initialConfig.enabled === true);
+  syncTestModeUIFromConfig(initialConfig);
+  updateTestModeUiInteractivity(game);
 }
 
 function setupStartOverlay(game) {
@@ -306,6 +472,9 @@ function setupStartOverlay(game) {
     showOverlay(instructionsOverlay, toggleInstructionsButton);
   };
   const showTestMode = () => {
+    const storedConfig = loadTestModeConfig();
+    syncTestModeUIFromConfig(storedConfig);
+    updateTestModeUiInteractivity(game);
     showOverlay(testModeOverlay, startTestModeButton);
   };
   const startRun = () => {
@@ -430,8 +599,8 @@ function setupTapToThrust(game) {
 
 // Bootstraps the game once the spaceman sprite is loaded.
 async function bootstrapGame() {
-  const [spacemanImage, asteroidSprites, alienSprites, powerUpIcons] = await Promise.all([
-    loadSpacemanSprite(),
+  const [spacemanSprites, asteroidSprites, alienSprites, powerUpIcons] = await Promise.all([
+    loadSpacemanSprites(),
     loadAsteroidSprites(),
     loadAlienSprites(),
     loadPowerUpIcons()
@@ -439,7 +608,7 @@ async function bootstrapGame() {
   const hudElements = buildHudElements();
   const drawingContext = canvasElement.getContext('2d');
   const game = new Game(canvasElement, drawingContext, hudElements, {
-    spacemanImage,
+    spacemanSprites,
     asteroidSprites,
     alienSprites,
     powerUpIcons,

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="60%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.25"/>
+      <stop offset="0.55" stop-color="#f472b6" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#f472b6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <g transform="translate(32 32)" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="0" cy="0" r="26" fill="#0f1735" stroke="#f472b6" stroke-width="3"/>
+    <circle cx="0" cy="0" r="22" fill="url(#glow)"/>
+
+    <!-- orbit ring -->
+    <circle cx="0" cy="0" r="14" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="3"/>
+    <circle cx="0" cy="0" r="14" fill="none" stroke="#f472b6" stroke-opacity="0.35" stroke-width="2"/>
+
+    <!-- core -->
+    <circle cx="0" cy="0" r="5.5" fill="#ffffff" fill-opacity="0.92"/>
+    <circle cx="0" cy="0" r="8.5" fill="#f472b6" fill-opacity="0.12"/>
+
+    <!-- three beams -->
+    <g stroke="#f472b6" stroke-width="4">
+      <path d="M6 -3 L24 -12" />
+      <path d="M-2 6 L-18 24" />
+      <path d="M-7 -2 L-24 8" />
+    </g>
+    <g stroke="#ffffff" stroke-width="2" stroke-opacity="0.45">
+      <path d="M6 -3 L24 -12" />
+      <path d="M-2 6 L-18 24" />
+      <path d="M-7 -2 L-24 8" />
+    </g>
+
+    <!-- orbiting emitter dot -->
+    <circle cx="14" cy="0" r="2.6" fill="#ffffff" fill-opacity="0.85"/>
+  </g>
+</svg>
+
+

@@ -1,6 +1,6 @@
 // Represents the controllable spaceman with physics.
 export class Player {
-  constructor(canvasWidth, canvasHeight, spriteImage) {
+  constructor(canvasWidth, canvasHeight, spriteSource) {
     this.width = 44;
     this.height = 58;
     this.gravityStrength = 1400;
@@ -10,10 +10,32 @@ export class Player {
     this.positionX = 0;
     this.positionY = 0;
     this.velocityY = 0;
-    this.spriteImage = spriteImage;
+    this.spriteImage = null;
+    this.normalSpriteImage = null;
+    this.damagedSpriteImage = null;
+    this.criticalSpriteImage = null;
     this.tintColor = 'rgba(255, 255, 255, 0)';
+    this.damageLevel = 0;
+    this.damageSparks = [];
+    this.damageSparksSpawnAccumulator = 0;
+    this.setSprites(spriteSource);
     this.setCanvasSize(canvasWidth, canvasHeight);
     this.reset(canvasHeight * 0.5);
+  }
+
+  // Sets the current sprite images (normal + damage variants) after they have loaded.
+  setSprites(spriteSource) {
+    if (spriteSource !== null && spriteSource !== undefined && typeof spriteSource === 'object' && spriteSource.normal !== undefined) {
+      this.normalSpriteImage = spriteSource.normal ?? null;
+      this.damagedSpriteImage = spriteSource.damaged ?? null;
+      this.criticalSpriteImage = spriteSource.critical ?? null;
+      this.spriteImage = this.normalSpriteImage;
+      return;
+    }
+    this.normalSpriteImage = spriteSource ?? null;
+    this.damagedSpriteImage = null;
+    this.criticalSpriteImage = null;
+    this.spriteImage = this.normalSpriteImage;
   }
 
   // Sets the current sprite image after it has loaded.
@@ -87,22 +109,170 @@ export class Player {
       touchedBoundary = true;
     }
 
+    this.updateDamageSparks(deltaSeconds);
+
     return touchedBoundary;
   }
 
   // Updates suit tint based on remaining lives.
   setAppearanceByLives(livesRemaining) {
+    // Prefer swapping to explicit damage sprites instead of drawing any tinted rectangle overlay.
+    this.tintColor = 'rgba(255, 255, 255, 0)';
+    const previousDamageLevel = this.damageLevel;
+    let nextDamageLevel = 0;
+
     if (livesRemaining >= 3) {
-      this.tintColor = 'rgba(255, 255, 255, 0)';
+      nextDamageLevel = 0;
+      if (this.normalSpriteImage !== null) {
+        this.spriteImage = this.normalSpriteImage;
+      }
+    } else if (livesRemaining === 2) {
+      nextDamageLevel = 1;
+      if (this.damagedSpriteImage !== null) {
+        this.spriteImage = this.damagedSpriteImage;
+      } else if (this.normalSpriteImage !== null) {
+        this.spriteImage = this.normalSpriteImage;
+      }
+    } else {
+      nextDamageLevel = 2;
+      if (this.criticalSpriteImage !== null) {
+        this.spriteImage = this.criticalSpriteImage;
+      } else if (this.damagedSpriteImage !== null) {
+        this.spriteImage = this.damagedSpriteImage;
+      } else if (this.normalSpriteImage !== null) {
+        this.spriteImage = this.normalSpriteImage;
+      }
+    }
+
+    this.damageLevel = nextDamageLevel;
+    if (this.damageLevel <= 0) {
+      this.damageSparks = [];
+      this.damageSparksSpawnAccumulator = 0;
+    } else if (this.damageLevel > previousDamageLevel) {
+      this.spawnDamageSparksBurst(this.damageLevel);
+    }
+  }
+
+  // Spawns a short burst of sparks when damage increases.
+  spawnDamageSparksBurst(damageLevel) {
+    const maxSparks = damageLevel >= 2 ? 55 : 35;
+    const burstCount = damageLevel >= 2 ? 16 : 10;
+    for (let sparkIndex = 0; sparkIndex < burstCount; sparkIndex += 1) {
+      if (this.damageSparks.length >= maxSparks) {
+        break;
+      }
+      this.damageSparks.push(this.createDamageSpark(damageLevel, true));
+    }
+  }
+
+  // Creates a single damage spark particle.
+  createDamageSpark(damageLevel, isBurst = false) {
+    const startX = -this.width * (0.25 + Math.random() * 0.38);
+    const startY = (Math.random() - 0.5) * this.height * 0.72;
+
+    const baseSpeed = damageLevel >= 2 ? 340 : 230;
+    const speedJitter = isBurst === true ? 240 : 150;
+    const speed = baseSpeed + Math.random() * speedJitter;
+
+    const spreadRadians = damageLevel >= 2 ? 1.35 : 1.05;
+    const directionRadians = Math.PI + (Math.random() - 0.5) * spreadRadians;
+    const velocityX = Math.cos(directionRadians) * speed;
+    const velocityY = Math.sin(directionRadians) * speed;
+
+    const baseLifeSeconds = damageLevel >= 2 ? 0.5 : 0.42;
+    const lifeSeconds = (isBurst === true ? 0.12 : 0.08) + Math.random() * baseLifeSeconds;
+    const size = (damageLevel >= 2 ? 2.3 : 1.9) + Math.random() * 1.7;
+
+    return {
+      offsetX: startX,
+      offsetY: startY,
+      velocityX,
+      velocityY,
+      elapsedSeconds: 0,
+      lifeSeconds,
+      size,
+      damageLevel
+    };
+  }
+
+  // Updates and spawns damage sparks while the player is damaged.
+  updateDamageSparks(deltaSeconds) {
+    if (this.damageLevel <= 0) {
       return;
     }
 
-    if (livesRemaining === 2) {
-      this.tintColor = 'rgba(255, 189, 74, 0.35)';
+    const spawnRatePerSecond = this.damageLevel >= 2 ? 28 : 14;
+    const maxSparks = this.damageLevel >= 2 ? 55 : 35;
+
+    this.damageSparksSpawnAccumulator += deltaSeconds * spawnRatePerSecond;
+    while (this.damageSparksSpawnAccumulator >= 1) {
+      this.damageSparksSpawnAccumulator -= 1;
+      if (this.damageSparks.length >= maxSparks) {
+        break;
+      }
+      this.damageSparks.push(this.createDamageSpark(this.damageLevel, false));
+    }
+
+    if (this.damageSparks.length === 0) {
       return;
     }
 
-    this.tintColor = 'rgba(255, 107, 107, 0.45)';
+    const remainingSparks = [];
+    for (const spark of this.damageSparks) {
+      spark.elapsedSeconds += deltaSeconds;
+      if (spark.elapsedSeconds >= spark.lifeSeconds) {
+        continue;
+      }
+      spark.offsetX += spark.velocityX * deltaSeconds;
+      spark.offsetY += spark.velocityY * deltaSeconds;
+      spark.velocityX *= 0.92;
+      spark.velocityY *= 0.92;
+      remainingSparks.push(spark);
+    }
+    this.damageSparks = remainingSparks;
+  }
+
+  // Draws a spark effect to indicate current damage.
+  drawDamageSparks(drawingContext) {
+    if (this.damageLevel <= 0) {
+      return;
+    }
+    if (this.damageSparks.length === 0) {
+      return;
+    }
+
+    drawingContext.save();
+    drawingContext.globalCompositeOperation = 'screen';
+    for (const spark of this.damageSparks) {
+      const lifeRatio = Math.max(0, Math.min(1, spark.elapsedSeconds / spark.lifeSeconds));
+      const fade = Math.max(0, 1 - lifeRatio);
+      const isCritical = spark.damageLevel >= 2;
+
+      const coreColor = isCritical === true ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.7)';
+      const glowColor = isCritical === true ? 'rgba(255, 107, 107, 0.92)' : 'rgba(255, 180, 84, 0.85)';
+
+      const streakLength = isCritical === true ? 0.028 : 0.02;
+      const streakX = spark.offsetX - spark.velocityX * streakLength;
+      const streakY = spark.offsetY - spark.velocityY * streakLength;
+
+      drawingContext.globalAlpha = 0.35 * fade;
+      drawingContext.strokeStyle = glowColor;
+      drawingContext.lineWidth = spark.size * 1.8;
+      drawingContext.lineCap = 'round';
+      drawingContext.beginPath();
+      drawingContext.moveTo(spark.offsetX, spark.offsetY);
+      drawingContext.lineTo(streakX, streakY);
+      drawingContext.stroke();
+
+      drawingContext.globalAlpha = 0.55 * fade;
+      drawingContext.strokeStyle = coreColor;
+      drawingContext.lineWidth = Math.max(1, spark.size * 0.7);
+      drawingContext.beginPath();
+      drawingContext.moveTo(spark.offsetX, spark.offsetY);
+      drawingContext.lineTo(streakX, streakY);
+      drawingContext.stroke();
+    }
+    drawingContext.restore();
   }
 
   // Draws the spaceman with tilt, optional tint, and thruster glow.
@@ -149,15 +319,7 @@ export class Player {
       drawingContext.globalAlpha = 1;
     }
 
-    drawingContext.globalAlpha = 0.55;
-    drawingContext.fillStyle = '#ffb454';
-    drawingContext.beginPath();
-    drawingContext.moveTo(-this.width * 0.55, this.height * 0.1);
-    drawingContext.lineTo(-this.width * 0.9, this.height * 0.25);
-    drawingContext.lineTo(-this.width * 0.55, this.height * 0.35);
-    drawingContext.closePath();
-    drawingContext.fill();
-    drawingContext.globalAlpha = 1;
+    this.drawDamageSparks(drawingContext);
 
     if (flashIntensity > 0) {
       drawingContext.globalAlpha = flashIntensity;
@@ -254,6 +416,8 @@ export class Player {
       blaster: '#ffde59',
       slow: '#b39cff',
       forceField: '#60a5fa',
+      orbitalLaser: '#f472b6',
+      seekerMissiles: '#a78bfa',
       missileBarrage: '#93c5fd',
       asteroidSplitter: '#67f4c1',
       multiplier: '#ff9f45',

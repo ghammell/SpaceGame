@@ -14,6 +14,22 @@ export class HazardShootingStar {
     this.seed = Math.random() * 1000;
   }
 
+  // Returns the collision radius for the head "ball" only (trail is visual).
+  getHeadRadius() {
+    return this.thickness * 1.05;
+  }
+
+  // Axis-aligned bounds approximating the head only (broad-phase collision).
+  getHeadBounds() {
+    const radius = this.getHeadRadius();
+    return {
+      left: this.positionX - radius,
+      top: this.positionY - radius,
+      width: radius * 2,
+      height: radius * 2
+    };
+  }
+
   getDirection() {
     const magnitude = Math.hypot(this.velocityX, this.velocityY);
     if (magnitude <= 0) {

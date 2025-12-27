@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="80" viewBox="0 0 64 80">
+  <defs>
+    <linearGradient id="suitGradient" x1="12" y1="6" x2="52" y2="74" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.55" stop-color="#e6ebff"/>
+      <stop offset="1" stop-color="#cfd7ff"/>
+    </linearGradient>
+    <linearGradient id="visorGradient" x1="18" y1="10" x2="40" y2="26" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#b8f1ff"/>
+      <stop offset="0.55" stop-color="#65a8ff"/>
+      <stop offset="1" stop-color="#2b6fff"/>
+    </linearGradient>
+    <radialGradient id="visorShine" cx="30%" cy="30%" r="70%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#0b1024" flood-opacity="0.32"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#shadow)" transform="translate(4 2)" stroke-linejoin="round" stroke-linecap="round">
+    <!-- Backpack (behind torso) -->
+    <rect x="14" y="30" width="36" height="22" rx="10" fill="#d9dfff" stroke="#c3c9f7" stroke-width="1.8"/>
+    <circle cx="24" cy="40" r="2.4" fill="#a5b8ff" opacity="0.75"/>
+    <circle cx="40" cy="40" r="2.4" fill="#a5b8ff" opacity="0.75"/>
+    <path d="M24 40 C26 44 30 46 32 46 C34 46 38 44 40 40" fill="none" stroke="#a5b8ff" stroke-width="1.6" opacity="0.65"/>
+
+    <!-- Arms -->
+    <g fill="url(#suitGradient)" stroke="#cfd7ff" stroke-width="1.6">
+      <path d="M10 30 C8 34 8 40 10 44 C12 48 16 50 20 48 L20 36 C16 34 12 32 10 30 Z"/>
+      <path d="M46 36 L46 48 C50 50 54 48 56 44 C58 40 58 34 56 30 C54 32 50 34 46 36 Z"/>
+    </g>
+
+    <!-- Gloves -->
+    <g fill="#d7defa" stroke="#c3c9f7" stroke-width="1.4">
+      <rect x="8" y="44" width="14" height="12" rx="6"/>
+      <rect x="44" y="44" width="14" height="12" rx="6"/>
+      <path d="M10 50 L20 50" stroke="#a5b8ff" stroke-width="1.4" opacity="0.65"/>
+      <path d="M46 50 L56 50" stroke="#a5b8ff" stroke-width="1.4" opacity="0.65"/>
+    </g>
+
+    <!-- Helmet -->
+    <g>
+      <path d="M18 6 C20 2 24 0 28 0 L36 0 C40 0 44 2 46 6 C48 10 48 14 48 18 C48 26 44 30 32 30 C20 30 16 26 16 18 C16 14 16 10 18 6 Z"
+            fill="url(#suitGradient)" stroke="#cfd7ff" stroke-width="2"/>
+      <!-- neck ring -->
+      <path d="M18 26 C22 30 42 30 46 26" fill="none" stroke="#c3c9f7" stroke-width="2"/>
+
+      <!-- visor -->
+      <rect x="20" y="10" width="24" height="16" rx="8" fill="url(#visorGradient)" stroke="#8bcfff" stroke-width="1.6"/>
+      <rect x="20" y="10" width="24" height="16" rx="8" fill="url(#visorShine)" stroke="none"/>
+      <path d="M24 14 C26 12 30 11 34 12" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="2"/>
+      <path d="M22 22 C26 24 30 25 34 25" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="2"/>
+
+      <!-- light damage: small visor crack -->
+      <path d="M28 14 L31 16 L30 19 L33 21" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1.4"/>
+      <path d="M27 18 L29 20" fill="none" stroke="#ffffff" stroke-opacity="0.28" stroke-width="1.2"/>
+    </g>
+
+    <!-- Torso -->
+    <g>
+      <rect x="18" y="30" width="28" height="24" rx="10" fill="url(#suitGradient)" stroke="#cfd7ff" stroke-width="1.8"/>
+      <!-- chest panel -->
+      <rect x="24" y="36" width="16" height="12" rx="4" fill="#0b1024" fill-opacity="0.14" stroke="#c3c9f7" stroke-width="1.2"/>
+      <circle cx="28" cy="42" r="1.7" fill="#ffb454" stroke="#eaa042" stroke-width="0.8"/>
+      <circle cx="32" cy="42" r="1.7" fill="#67f4c1" stroke="#47dba6" stroke-width="0.8"/>
+      <circle cx="36" cy="42" r="1.7" fill="#65a8ff" stroke="#3f7fe6" stroke-width="0.8"/>
+      <!-- belt -->
+      <path d="M20 52 C26 54 38 54 44 52" fill="none" stroke="#a5b8ff" stroke-width="2" opacity="0.55"/>
+
+      <!-- suit scuffs -->
+      <path d="M22 34 C24 33 26 33 28 34" fill="none" stroke="#a5b8ff" stroke-opacity="0.35" stroke-width="1.4"/>
+      <path d="M36 50 C38 49 40 49 42 50" fill="none" stroke="#a5b8ff" stroke-opacity="0.3" stroke-width="1.4"/>
+    </g>
+
+    <!-- Legs -->
+    <g fill="url(#suitGradient)" stroke="#cfd7ff" stroke-width="1.6">
+      <rect x="20" y="52" width="12" height="20" rx="6"/>
+      <rect x="32" y="52" width="12" height="20" rx="6"/>
+    </g>
+
+    <!-- Boots -->
+    <g>
+      <path d="M20 68 C20 74 24 76 30 76 C32 76 32 72 32 68 Z" fill="#d7defa" stroke="#c3c9f7" stroke-width="1.4"/>
+      <path d="M32 68 C32 74 36 76 42 76 C44 76 44 72 44 68 Z" fill="#d7defa" stroke="#c3c9f7" stroke-width="1.4"/>
+      <rect x="20" y="74" width="12" height="4" rx="2" fill="#2a2e35" opacity="0.65"/>
+      <rect x="32" y="74" width="12" height="4" rx="2" fill="#2a2e35" opacity="0.65"/>
+    </g>
+
+    <!-- Shoulder lights -->
+    <circle cx="14" cy="40" r="5.2" fill="#a5b8ff" opacity="0.28"/>
+    <circle cx="50" cy="40" r="5.2" fill="#a5b8ff" opacity="0.28"/>
+
+    <!-- subtle warning glow on left shoulder -->
+    <circle cx="14" cy="40" r="3.3" fill="#ffb454" opacity="0.18"/>
+  </g>
+</svg>
+
+

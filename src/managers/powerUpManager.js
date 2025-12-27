@@ -31,8 +31,9 @@ export class PowerUpManager {
   }
 
   // Advances timers, spawns power-ups, and prunes off-screen items.
-  update(deltaSeconds) {
-    this.spawnTimer += deltaSeconds;
+  update(deltaSeconds, spawnRateMultiplier = 1) {
+    const safeSpawnRateMultiplier = typeof spawnRateMultiplier === 'number' && spawnRateMultiplier > 0 ? spawnRateMultiplier : 1;
+    this.spawnTimer += deltaSeconds * safeSpawnRateMultiplier;
     if (this.spawnTimer >= this.nextSpawnDelay && this.powerUps.length < 2) {
       this.spawnPowerUp();
       this.spawnTimer = 0;

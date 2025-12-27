@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="65%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.08"/>
+      <stop offset="0.45" stop-color="#a78bfa" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#a78bfa" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <g transform="translate(32 32)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- target ring -->
+    <circle cx="0" cy="0" r="24" fill="#0f1735" stroke="#a78bfa" stroke-width="3"/>
+    <circle cx="0" cy="0" r="20" fill="url(#bg)"/>
+    <circle cx="0" cy="0" r="14" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="3"/>
+    <path d="M0 -18 V-10" stroke="#ffffff" stroke-opacity="0.25" stroke-width="3"/>
+    <path d="M0 18 V10" stroke="#ffffff" stroke-opacity="0.25" stroke-width="3"/>
+    <path d="M-18 0 H-10" stroke="#ffffff" stroke-opacity="0.25" stroke-width="3"/>
+    <path d="M18 0 H10" stroke="#ffffff" stroke-opacity="0.25" stroke-width="3"/>
+
+    <!-- missile -->
+    <g transform="translate(-1 5) rotate(-22)">
+      <path d="M0 -14 C6 -12 10 -4 10 0 C10 4 6 12 0 14 C-6 12 -10 4 -10 0 C-10 -4 -6 -12 0 -14 Z"
+        fill="#e6f0ff" stroke="#a78bfa" stroke-width="2"/>
+      <path d="M0 -14 L0 -20" stroke="#ffffff" stroke-opacity="0.35" stroke-width="2"/>
+      <path d="M-6 4 L-12 10 L-6 10 Z" fill="#a78bfa" fill-opacity="0.9"/>
+      <path d="M6 4 L12 10 L6 10 Z" fill="#a78bfa" fill-opacity="0.9"/>
+      <circle cx="0" cy="-6" r="2.2" fill="#ffffff" fill-opacity="0.85"/>
+      <ellipse cx="0" cy="16" rx="6.5" ry="3.2" fill="#f472b6" fill-opacity="0.18"/>
+    </g>
+  </g>
+</svg>
+
+

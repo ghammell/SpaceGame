@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Orbital Dodge</title>
+  <title>Cosmic Drift</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
+  <header id="desktopHeader" class="desktop-header touch-hidden" aria-label="Game title">
+    <div class="desktop-title">Cosmic Drift</div>
+  </header>
   <main class="layout">
     <canvas id="gameCanvas" width="1400" height="800" aria-label="Gameplay canvas"></canvas>
   </main>
@@ -24,7 +27,7 @@
       </div>
       <div class="modal-body">
         <div class="modern-text">
-          Positive powerups give you advantages. Negative powerups add challenges but award higher points. Survive and push the high score.
+          <strong>Objective:</strong> get the highest score possible. Stack powerups, destroy hazards, and survive as long as you can.
         </div>
         <div class="summary-title small">Controls</div>
         <div class="info-grid">
@@ -41,17 +44,28 @@
             <div class="info-desc">Fire blaster (when armed)</div>
           </div>
         </div>
-        <div class="summary-title small">Powerups</div>
+        <div class="summary-title small modal-section-title">Positive Powerups</div>
+        <div class="modern-text subtext">
+          Advantages that help you survive and score more.
+        </div>
         <div class="info-grid power-grid">
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/heart_plus.svg" alt="Extra life" /><div>Extra life</div><span>Gain 1 life</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/cloak.svg" alt="Cloak" /><div>Cloak</div><span>Phase through asteroids</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/blaster.svg" alt="Blaster" /><div>Blaster</div><span>Unlimited shots while active</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/slow.svg" alt="Slow" /><div>Slow</div><span>Hazards move slower</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/forcefield.svg" alt="Force field" /><div>Force Field</div><span>Pulses clear nearby asteroids</span></div>
+          <div class="power-tile"><img class="summary-icon" src="./assets/powerups/orbitallaser.svg" alt="Orbital laser" /><div>Orbital Laser</div><span>3 pulse sweeps clear hazards</span></div>
+          <div class="power-tile"><img class="summary-icon" src="./assets/powerups/seeker.svg" alt="Seeker missiles" /><div>Seeker Missiles</div><span>Periodic homing missiles hit random hazards</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/missiles.svg" alt="Missile barrage" /><div>Missile Barrage</div><span>Delayed missiles clear asteroids + aliens</span></div>
-          <div class="power-tile"><img class="summary-icon" src="./assets/powerups/splitter.svg" alt="Asteroid splitter" /><div>Asteroid Splitter</div><span>Asteroids shatter into smaller ones, bonus points</span></div>
-          <div class="power-tile"><img class="summary-icon" src="./assets/powerups/spacedust.svg" alt="Space dust" /><div>Space Dust</div><span>Obscures vision</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/multiplier.svg" alt="Multiplier" /><div>Multiplier</div><span>Score x2</span></div>
+        </div>
+        <div class="summary-title small modal-section-title">Negative Powerups</div>
+        <div class="modern-text subtext">
+          Negative powerups make the game harder, but your score increases faster while they’re active and you earn a bonus when they end.
+        </div>
+        <div class="info-grid power-grid">
+          <div class="power-tile"><img class="summary-icon" src="./assets/powerups/splitter.svg" alt="Asteroid splitter" /><div>Asteroid Splitter</div><span>Asteroids shatter into smaller ones, bonus points</span></div>
+          <div class="power-tile"><img class="summary-icon" src="./assets/powerups/spacedust.svg" alt="Space dust" /><div>Space Dust</div><span>Obscures vision, bonus points</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/blackhole.svg" alt="Black hole" /><div>Black Hole</div><span>Faster hazards, bonus points</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/solarflare.svg" alt="Solar flare" /><div>Solar Flare</div><span>Larger hazards, bonus points</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/wave.svg" alt="Wave" /><div>Wave</div><span>Bobbing hazards, bonus points</span></div>
@@ -74,7 +88,7 @@
     <div class="modal-card start-card">
       <div class="start-hero">
         <img src="./assets/spaceman.svg" class="start-spaceman" alt="Spaceman" />
-        <div class="start-title">Orbital Dodge</div>
+        <div class="start-title">Cosmic Drift</div>
         <div class="start-subtitle">Press Space or click Start.</div>
         <div class="start-message">Welcome, pilot. Dodge the field, stack powerups, chase the high score.</div>
       </div>
@@ -107,34 +121,94 @@
         <button id="closeTestMode" class="modal-close" data-close-target="testModeOverlay" aria-label="Close test mode">×</button>
       </div>
       <div class="modal-body">
-        <label class="testmode-row">
-          <input id="testModeEnabled" type="checkbox" />
-          Enable test mode
-        </label>
-        <label class="testmode-row">
-          <input id="testModeInfiniteLives" type="checkbox" />
-          Infinite lives
-        </label>
+        <div class="modern-text">
+          Test mode disables saving high scores. Settings apply immediately.
+        </div>
         <div class="testmode-section">
-          <div class="summary-title small">Allowed powerups</div>
+          <div class="summary-title small modal-section-title">Test Mode</div>
+          <div class="modern-text subtext">
+            When disabled, all other settings are ignored.
+          </div>
+          <label class="testmode-row">
+            <input id="testModeEnabled" type="checkbox" />
+            Enable test mode
+          </label>
+        </div>
+        <div class="testmode-section">
+          <div class="summary-title small modal-section-title">Infinite Lives</div>
+          <div class="modern-text subtext">
+            Only applies when test mode is enabled.
+          </div>
+          <label class="testmode-row">
+            <input id="testModeInfiniteLives" type="checkbox" />
+            Infinite lives
+          </label>
+        </div>
+        <div class="testmode-section">
+          <div class="summary-title small modal-section-title">Asteroid Tuning</div>
+          <div class="modern-text subtext">
+            These sliders are multipliers on top of the normal game behavior. <strong>1.00×</strong> is the default.
+          </div>
+          <div class="testmode-sliders">
+            <div class="testmode-slider-row">
+              <div class="testmode-slider-meta">
+                <div class="testmode-slider-label">Asteroid speed</div>
+                <div id="testAsteroidSpeedValue" class="testmode-slider-value">1.00×</div>
+              </div>
+              <input id="testAsteroidSpeedMultiplier" class="testmode-range" type="range" min="0.5" max="2.5" step="0.05" value="1" />
+            </div>
+            <div class="testmode-slider-row">
+              <div class="testmode-slider-meta">
+                <div class="testmode-slider-label">Asteroid size</div>
+                <div id="testAsteroidSizeValue" class="testmode-slider-value">1.00×</div>
+              </div>
+              <input id="testAsteroidSizeMultiplier" class="testmode-range" type="range" min="0.6" max="2" step="0.05" value="1" />
+            </div>
+            <div class="testmode-slider-row">
+              <div class="testmode-slider-meta">
+                <div class="testmode-slider-label">Asteroid spawn rate</div>
+                <div id="testAsteroidSpawnRateValue" class="testmode-slider-value">1.00×</div>
+              </div>
+              <input id="testAsteroidSpawnRateMultiplier" class="testmode-range" type="range" min="0.5" max="3" step="0.05" value="1" />
+            </div>
+            <div class="testmode-slider-row">
+              <div class="testmode-slider-meta">
+                <div class="testmode-slider-label">Powerup spawn rate</div>
+                <div id="testPowerupSpawnRateValue" class="testmode-slider-value">1.00×</div>
+              </div>
+              <input id="testPowerupSpawnRateMultiplier" class="testmode-range" type="range" min="0.5" max="3" step="0.05" value="1" />
+            </div>
+          </div>
+        </div>
+        <div class="testmode-section">
+          <div class="summary-title small modal-section-title">Positive Powerups</div>
+          <div class="modern-text subtext">
+            Advantages that help you survive and score more.
+          </div>
           <div class="testmode-grid">
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="extraLife" /> <img class="testmode-icon" src="./assets/powerups/heart_plus.svg" alt="" aria-hidden="true" /> Extra Life <span class="testmode-desc">Gain one life</span></label>
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="cloak" /> <img class="testmode-icon" src="./assets/powerups/cloak.svg" alt="" aria-hidden="true" /> Cloak <span class="testmode-desc">Phase through asteroids</span></label>
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="blaster" /> <img class="testmode-icon" src="./assets/powerups/blaster.svg" alt="" aria-hidden="true" /> Blaster <span class="testmode-desc">Fire while active</span></label>
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="slow" /> <img class="testmode-icon" src="./assets/powerups/slow.svg" alt="" aria-hidden="true" /> Slow <span class="testmode-desc">Hazards move slower</span></label>
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="forceField" /> <img class="testmode-icon" src="./assets/powerups/forcefield.svg" alt="" aria-hidden="true" /> Force Field <span class="testmode-desc">Pulses clear nearby asteroids</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="orbitalLaser" /> <img class="testmode-icon" src="./assets/powerups/orbitallaser.svg" alt="" aria-hidden="true" /> Orbital Laser <span class="testmode-desc">3 pulse sweeps clear hazards</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="seekerMissiles" /> <img class="testmode-icon" src="./assets/powerups/seeker.svg" alt="" aria-hidden="true" /> Seeker Missiles <span class="testmode-desc">Periodic homing missiles</span></label>
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="missileBarrage" /> <img class="testmode-icon" src="./assets/powerups/missiles.svg" alt="" aria-hidden="true" /> Missile Barrage <span class="testmode-desc">Delayed missiles clear asteroids + aliens</span></label>
-            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="asteroidSplitter" /> <img class="testmode-icon" src="./assets/powerups/splitter.svg" alt="" aria-hidden="true" /> Asteroid Splitter <span class="testmode-desc">Asteroids shatter into smaller ones</span></label>
-            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="spaceDust" /> <img class="testmode-icon" src="./assets/powerups/spacedust.svg" alt="" aria-hidden="true" /> Space Dust <span class="testmode-desc">Vision obscured briefly</span></label>
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="multiplier" /> <img class="testmode-icon" src="./assets/powerups/multiplier.svg" alt="" aria-hidden="true" /> Multiplier <span class="testmode-desc">Score x2</span></label>
-            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="blackHole" /> <img class="testmode-icon" src="./assets/powerups/blackhole.svg" alt="" aria-hidden="true" /> Black Hole <span class="testmode-desc">Faster hazards</span></label>
-            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="solarFlare" /> <img class="testmode-icon" src="./assets/powerups/solarflare.svg" alt="" aria-hidden="true" /> Solar Flare <span class="testmode-desc">Larger hazards</span></label>
-            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="wave" /> <img class="testmode-icon" src="./assets/powerups/wave.svg" alt="" aria-hidden="true" /> Wave <span class="testmode-desc">Bobbing hazards</span></label>
+          </div>
+
+          <div class="summary-title small modal-section-title">Negative Powerups</div>
+          <div class="modern-text subtext">
+            Harder run, faster score. Bonus points awarded when the effect ends.
+          </div>
+          <div class="testmode-grid">
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="asteroidSplitter" /> <img class="testmode-icon" src="./assets/powerups/splitter.svg" alt="" aria-hidden="true" /> Asteroid Splitter <span class="testmode-desc">Asteroids shatter into smaller ones</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="spaceDust" /> <img class="testmode-icon" src="./assets/powerups/spacedust.svg" alt="" aria-hidden="true" /> Space Dust <span class="testmode-desc">Vision obscured (bonus points)</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="blackHole" /> <img class="testmode-icon" src="./assets/powerups/blackhole.svg" alt="" aria-hidden="true" /> Black Hole <span class="testmode-desc">Faster hazards (bonus points)</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="solarFlare" /> <img class="testmode-icon" src="./assets/powerups/solarflare.svg" alt="" aria-hidden="true" /> Solar Flare <span class="testmode-desc">Larger hazards (bonus points)</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="wave" /> <img class="testmode-icon" src="./assets/powerups/wave.svg" alt="" aria-hidden="true" /> Wave <span class="testmode-desc">Bobbing hazards (bonus points)</span></label>
           </div>
           <div class="testmode-help">If no powerups are selected, all powerups are allowed while test mode is enabled.</div>
-        </div>
-        <div class="testmode-actions">
-          <button id="applyTestMode" class="summary-button small">Apply</button>
         </div>
       </div>
     </div>
