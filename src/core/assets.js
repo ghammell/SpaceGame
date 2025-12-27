@@ -31,7 +31,12 @@ export async function loadAsteroidSprites() {
     '../../assets/asteroids/asteroid7.svg',
     '../../assets/asteroids/asteroid8.svg',
     '../../assets/asteroids/asteroid9.svg',
-    '../../assets/asteroids/asteroid10.svg'
+    '../../assets/asteroids/asteroid10.svg',
+    '../../assets/asteroids/asteroid11.svg',
+    '../../assets/asteroids/asteroid12.svg',
+    '../../assets/asteroids/asteroid13.svg',
+    '../../assets/asteroids/asteroid14.svg',
+    '../../assets/asteroids/asteroid15.svg'
   ];
   const loadPromises = asteroidPaths.map((path) => {
     const spriteUrl = new URL(path, import.meta.url).href;

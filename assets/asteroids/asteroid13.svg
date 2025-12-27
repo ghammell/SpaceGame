@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="88" viewBox="0 0 96 88">
+  <defs>
+    <linearGradient id="asteroid13Body" x1="6" y1="6" x2="92" y2="84" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d7c8f2"/>
+      <stop offset="0.55" stop-color="#8468b5"/>
+      <stop offset="1" stop-color="#3b2a63"/>
+    </linearGradient>
+    <radialGradient id="asteroid13Crater" cx="35%" cy="35%" r="85%">
+      <stop offset="0" stop-color="#f4efff"/>
+      <stop offset="0.55" stop-color="#b29ad9"/>
+      <stop offset="1" stop-color="#6d55a7"/>
+    </radialGradient>
+  </defs>
+
+  <g stroke="#3b2a63" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <!-- shadow -->
+    <path d="M18 22 C22 12 34 8 48 8 C62 8 74 14 82 24 C90 34 92 50 86 64 C80 78 66 84 50 84 C36 84 24 78 16 68 C8 58 8 42 14 30 C15 27 16 24 18 22 Z" fill="rgba(0,0,0,0.18)" stroke="none" transform="translate(3 4)"/>
+
+    <!-- body (rounded perimeter) -->
+    <path d="M18 22 C22 12 34 8 48 8 C62 8 74 14 82 24 C90 34 92 50 86 64 C80 78 66 84 50 84 C36 84 24 78 16 68 C8 58 8 42 14 30 C15 27 16 24 18 22 Z" fill="url(#asteroid13Body)"/>
+
+    <!-- texture cracks (behind craters) -->
+    <g stroke="#1b1230" stroke-opacity="0.32" stroke-width="2" fill="none">
+      <path d="M72 22 C66 30 68 38 74 44 C80 50 78 60 70 66"/>
+      <path d="M22 56 C30 50 40 50 46 56"/>
+    </g>
+
+    <!-- highlight -->
+    <path d="M24 22 C34 12 50 10 62 14" fill="none" stroke="rgba(255,255,255,0.32)" stroke-width="3"/>
+
+    <!-- craters -->
+    <g stroke="#513a86" stroke-width="2">
+      <ellipse cx="40" cy="34" rx="12" ry="9" fill="rgba(0,0,0,0.14)" stroke="none" transform="translate(2 2)"/>
+      <ellipse cx="40" cy="34" rx="12" ry="9" fill="url(#asteroid13Crater)"/>
+      <ellipse cx="37" cy="31" rx="5" ry="3.8" fill="rgba(255,255,255,0.20)" stroke="none"/>
+
+      <ellipse cx="66" cy="38" rx="9" ry="6.5" fill="rgba(0,0,0,0.12)" stroke="none" transform="translate(2 2)"/>
+      <ellipse cx="66" cy="38" rx="9" ry="6.5" fill="rgba(238,229,255,0.32)"/>
+
+      <ellipse cx="56" cy="62" rx="8" ry="5.8" fill="rgba(0,0,0,0.12)" stroke="none" transform="translate(2 2)"/>
+      <ellipse cx="56" cy="62" rx="8" ry="5.8" fill="rgba(238,229,255,0.30)"/>
+    </g>
+  </g>
+</svg>
+

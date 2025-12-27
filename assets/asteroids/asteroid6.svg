@@ -1,9 +1,44 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="96" height="88" viewBox="0 0 96 88">
-  <g fill="#7a5f4b" stroke="#5c4533" stroke-width="3">
-    <path d="M16 12 L44 16 L70 12 L88 30 L82 60 L60 78 L34 78 L12 54 Z" />
-    <ellipse cx="30" cy="30" rx="9" ry="6" fill="#a08970"/>
-    <ellipse cx="62" cy="34" rx="10" ry="7" fill="#92765d"/>
-    <ellipse cx="46" cy="58" rx="7" ry="5" fill="#a08970"/>
+  <defs>
+    <linearGradient id="asteroid6Body" x1="6" y1="8" x2="92" y2="84" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#b8c0cc"/>
+      <stop offset="0.55" stop-color="#606a78"/>
+      <stop offset="1" stop-color="#2a2f37"/>
+    </linearGradient>
+    <radialGradient id="asteroid6Crater" cx="38%" cy="34%" r="88%">
+      <stop offset="0" stop-color="#eef2f7"/>
+      <stop offset="0.6" stop-color="#a1aab6"/>
+      <stop offset="1" stop-color="#5d6672"/>
+    </radialGradient>
+  </defs>
+
+  <g stroke="#2a2f37" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <!-- shadow -->
+    <path d="M20 20 C28 10 44 8 56 10 C70 12 84 22 88 38 C92 54 84 70 68 78 C52 86 34 82 22 72 C10 62 8 44 14 32 C16 28 18 24 20 20 Z" fill="rgba(0,0,0,0.16)" stroke="none" transform="translate(3 4)"/>
+
+    <!-- body -->
+    <path d="M20 20 C28 10 44 8 56 10 C70 12 84 22 88 38 C92 54 84 70 68 78 C52 86 34 82 22 72 C10 62 8 44 14 32 C16 28 18 24 20 20 Z" fill="url(#asteroid6Body)"/>
+
+    <!-- highlight -->
+    <path d="M24 22 C36 12 52 12 66 16" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="3"/>
+
+    <!-- seams -->
+    <g stroke="#0f1216" stroke-opacity="0.25" stroke-width="2" fill="none">
+      <path d="M72 22 C64 32 66 38 74 46 C82 54 80 64 70 70"/>
+      <path d="M26 64 C34 58 44 58 52 64"/>
+    </g>
+
+    <!-- craters -->
+    <g stroke="#5d6672" stroke-width="2">
+      <ellipse cx="32" cy="30" rx="10" ry="7" fill="rgba(0,0,0,0.10)" stroke="none" transform="translate(2 2)"/>
+      <ellipse cx="32" cy="30" rx="10" ry="7" fill="url(#asteroid6Crater)"/>
+
+      <ellipse cx="64" cy="34" rx="10" ry="7.5" fill="rgba(0,0,0,0.10)" stroke="none" transform="translate(2 2)"/>
+      <ellipse cx="64" cy="34" rx="10" ry="7.5" fill="url(#asteroid6Crater)"/>
+
+      <ellipse cx="48" cy="60" rx="8" ry="6" fill="rgba(0,0,0,0.10)" stroke="none" transform="translate(2 2)"/>
+      <ellipse cx="48" cy="60" rx="8" ry="6" fill="url(#asteroid6Crater)"/>
+    </g>
   </g>
 </svg>
 

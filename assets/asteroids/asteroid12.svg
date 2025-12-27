@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="88" viewBox="0 0 96 88">
+  <defs>
+    <linearGradient id="asteroid12Body" x1="10" y1="10" x2="90" y2="78" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e1f8ff"/>
+      <stop offset="0.55" stop-color="#86c9ef"/>
+      <stop offset="1" stop-color="#2f6fa6"/>
+    </linearGradient>
+  </defs>
+
+  <g stroke="#2f628e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <!-- shadow -->
+    <path d="M16 26 C20 14 34 10 46 10 C60 10 72 16 80 26 C88 36 90 50 84 62 C78 74 64 80 50 80 C36 80 24 74 16 64 C8 54 8 40 14 30 C15 28 15 27 16 26 Z" fill="rgba(0,0,0,0.16)" stroke="none" transform="translate(3 4)"/>
+
+    <!-- body (rounded perimeter) -->
+    <path d="M16 26 C20 14 34 10 46 10 C60 10 72 16 80 26 C88 36 90 50 84 62 C78 74 64 80 50 80 C36 80 24 74 16 64 C8 54 8 40 14 30 C15 28 15 27 16 26 Z" fill="url(#asteroid12Body)"/>
+
+    <!-- facets (drawn before pits) -->
+    <path d="M20 30 L38 18 L46 32 L30 44 Z" fill="rgba(255,255,255,0.16)" stroke="none"/>
+    <path d="M46 18 L66 24 L60 40 L44 36 Z" fill="rgba(255,255,255,0.12)" stroke="none"/>
+    <path d="M26 52 L40 44 L54 58 L34 66 Z" fill="rgba(255,255,255,0.10)" stroke="none"/>
+    <path d="M60 48 L78 38 L80 54 L66 62 Z" fill="rgba(255,255,255,0.08)" stroke="none"/>
+
+    <!-- crisp highlight -->
+    <path d="M22 28 C32 18 48 16 60 20" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="3"/>
+
+    <!-- icy pits (drawn last so internal lines don't cross them) -->
+    <g stroke="#3c6c99" stroke-width="2">
+      <ellipse cx="32" cy="34" rx="10" ry="7" fill="rgba(0,0,0,0.12)" stroke="none" transform="translate(2 2)"/>
+      <ellipse cx="32" cy="34" rx="10" ry="7" fill="rgba(255,255,255,0.26)"/>
+
+      <ellipse cx="64" cy="38" rx="9" ry="6.5" fill="rgba(0,0,0,0.10)" stroke="none" transform="translate(2 2)"/>
+      <ellipse cx="64" cy="38" rx="9" ry="6.5" fill="rgba(255,255,255,0.22)"/>
+
+      <ellipse cx="50" cy="62" rx="8" ry="6" fill="rgba(0,0,0,0.10)" stroke="none" transform="translate(2 2)"/>
+      <ellipse cx="50" cy="62" rx="8" ry="6" fill="rgba(255,255,255,0.22)"/>
+    </g>
+  </g>
+</svg>
+
