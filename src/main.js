@@ -35,9 +35,11 @@ const TEST_MODE_STORAGE_KEY = 'orbitalTestModeConfig';
 const startOverlay = document.getElementById('startOverlay');
 const startPlayButton = document.getElementById('startPlayButton');
 const startInstructionsButton = document.getElementById('startInstructionsButton');
+const startTestModeButton = document.getElementById('startTestModeButton');
 const pauseOverlay = document.getElementById('pauseOverlay');
 const pauseResumeButton = document.getElementById('pauseResumeButton');
 let instructionsOpenedFromStart = false;
+let testModeOpenedFromStart = false;
 const infoRowElement = document.querySelector('.info-row');
 const summaryFields = {
   score: document.getElementById('summaryScore'),
@@ -58,6 +60,28 @@ const summaryFields = {
   highScoresList: document.getElementById('summaryHighScores'),
   inlineHighScoresList: document.getElementById('inlineHighScores')
 };
+
+// Hides the info button row on touch-first devices.
+function updateInfoRowVisibility(game) {
+  if (infoRowElement === null) {
+    return;
+  }
+  const isTouchDevice = game.detectTouchFirstDevice();
+  if (isTouchDevice === true) {
+    infoRowElement.classList.add('touch-hidden');
+  } else {
+    infoRowElement.classList.remove('touch-hidden');
+  }
+}
+
+// Calculates and applies UI padding for canvas sizing (desktop reserves space for the footer buttons).
+function applyUiPadding(game) {
+  const isTouchDevice = game.detectTouchFirstDevice();
+  const reservedBottomPadding = isTouchDevice === true ? 0 : 12;
+  const infoRowHeight = infoRowElement !== null ? infoRowElement.offsetHeight : 0;
+  const uiPadding = infoRowHeight + reservedBottomPadding;
+  game.setUiPadding(uiPadding);
+}
 
 // Builds a map of HUD elements used by the game.
 function buildHudElements() {
@@ -168,6 +192,7 @@ function setupInfoToggles(game) {
   if (toggleInstructionsButton !== null && instructionsOverlay !== null) {
     toggleInstructionsButton.addEventListener('click', () => {
       instructionsOpenedFromStart = false;
+      testModeOpenedFromStart = false;
       game.pauseGame(false);
       showOverlay(instructionsOverlay, toggleInstructionsButton);
     });
@@ -184,11 +209,24 @@ function setupInfoToggles(game) {
       const targetId = button.dataset.closeTarget;
       const panel = document.getElementById(targetId);
       if (panel !== null) {
-        hideOverlay(panel, panel.id === 'instructionsOverlay' ? toggleInstructionsButton : toggleHighScoresButton);
+        let overlayButton = null;
+        if (panel.id === 'instructionsOverlay') {
+          overlayButton = toggleInstructionsButton;
+        } else if (panel.id === 'highScoresOverlay') {
+          overlayButton = toggleHighScoresButton;
+        } else if (panel.id === 'testModeOverlay') {
+          overlayButton = testModeOpenedFromStart === true ? startTestModeButton : toggleTestModeButton;
+        }
+        hideOverlay(panel, overlayButton);
         if (panel.id === 'instructionsOverlay' && instructionsOpenedFromStart === true && startOverlay !== null && startOverlay.classList.contains('hidden') === true) {
           startOverlay.classList.remove('hidden');
           startOverlay.classList.add('visible');
           instructionsOpenedFromStart = false;
+        }
+        if (panel.id === 'testModeOverlay' && testModeOpenedFromStart === true && startOverlay !== null && startOverlay.classList.contains('hidden') === true) {
+          startOverlay.classList.remove('hidden');
+          startOverlay.classList.add('visible');
+          testModeOpenedFromStart = false;
         }
       }
     });
@@ -200,6 +238,7 @@ function setupInfoToggles(game) {
       hideOverlay(testModeOverlay, toggleTestModeButton);
       hideOverlay(startOverlay, null);
       instructionsOpenedFromStart = false;
+      testModeOpenedFromStart = false;
     }
   });
 }
@@ -219,11 +258,14 @@ function setupTestModeUI(game) {
         toggleTestModeButton.classList.remove('test-enabled');
       }
     }
+    if (startTestModeButton !== null) {
+      if (enabled === true) {
+        startTestModeButton.classList.add('test-enabled');
+      } else {
+        startTestModeButton.classList.remove('test-enabled');
+      }
+    }
   };
-  const closeButton = document.getElementById('closeTestMode');
-  if (closeButton !== null) {
-    closeButton.addEventListener('click', () => hideOverlay(testModeOverlay, toggleTestModeButton));
-  }
   const applyButton = document.getElementById('applyTestMode');
   if (applyButton !== null) {
     applyButton.addEventListener('click', () => {
@@ -238,8 +280,14 @@ function setupTestModeUI(game) {
       const config = { enabled, allowedPowerups: allowed.length > 0 ? allowed : null, infiniteLives };
       saveTestModeConfig(config);
       game.applyTestModeConfig(config);
-      hideOverlay(testModeOverlay, toggleTestModeButton);
+      const overlayButton = testModeOpenedFromStart === true ? startTestModeButton : toggleTestModeButton;
+      hideOverlay(testModeOverlay, overlayButton);
       markButtonState(enabled);
+      if (testModeOpenedFromStart === true && startOverlay !== null && startOverlay.classList.contains('hidden') === true) {
+        startOverlay.classList.remove('hidden');
+        startOverlay.classList.add('visible');
+        testModeOpenedFromStart = false;
+      }
     });
   }
   // initialize state from stored config on load
@@ -257,6 +305,9 @@ function setupStartOverlay(game) {
   const showInstructions = () => {
     showOverlay(instructionsOverlay, toggleInstructionsButton);
   };
+  const showTestMode = () => {
+    showOverlay(testModeOverlay, startTestModeButton);
+  };
   const startRun = () => {
     hideStart();
     game.start(3);
@@ -267,8 +318,17 @@ function setupStartOverlay(game) {
   if (startInstructionsButton !== null) {
     startInstructionsButton.addEventListener('click', () => {
       instructionsOpenedFromStart = true;
+      testModeOpenedFromStart = false;
       hideStart();
       showInstructions();
+    });
+  }
+  if (startTestModeButton !== null) {
+    startTestModeButton.addEventListener('click', () => {
+      instructionsOpenedFromStart = false;
+      testModeOpenedFromStart = true;
+      hideStart();
+      showTestMode();
     });
   }
   document.addEventListener('keydown', (event) => {
@@ -392,6 +452,9 @@ async function bootstrapGame() {
   if (initialTestMode.enabled === true && toggleTestModeButton !== null) {
     toggleTestModeButton.classList.add('test-enabled');
   }
+  if (initialTestMode.enabled === true && startTestModeButton !== null) {
+    startTestModeButton.classList.add('test-enabled');
+  }
   if (summaryFields.saveButton !== null) {
     summaryFields.saveButton.addEventListener('click', () => {
       game.saveHighScore();
@@ -406,9 +469,13 @@ async function bootstrapGame() {
   setupStartOverlay(game);
   setupPauseOverlay(game);
   setupTapToThrust(game);
-  const uiPad = (infoRowElement !== null ? infoRowElement.offsetHeight : 0) + 12;
-  game.setUiPadding(uiPad);
+  updateInfoRowVisibility(game);
+  applyUiPadding(game);
   game.handleResize();
+  window.addEventListener('resize', () => {
+    updateInfoRowVisibility(game);
+    applyUiPadding(game);
+  }, true);
 }
 
 bootstrapGame().catch((error) => {

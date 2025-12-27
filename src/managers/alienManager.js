@@ -28,7 +28,7 @@ export class AlienManager {
 
   // Randomized next spawn.
   getNextSpawnDelay() {
-    const baseDelay = 9 + Math.random() * 9;
+    const baseDelay = 6 + Math.random() * 6;
     return baseDelay;
   }
 

@@ -7,6 +7,13 @@ import { Explosion } from '../effects/explosion.js';
 import { Bullet } from '../entities/bullet.js';
 import { setTestModeConfig } from '../entities/powerUp.js';
 
+// Desktop canvas sizing: keep the on-screen playfield at this width (or smaller), but render at higher resolution
+// so entities appear smaller without introducing padding inside the canvas.
+const DESKTOP_MAX_DISPLAY_WIDTH_PX = 1100;
+const DESKTOP_TARGET_ASPECT_RATIO = 9 / 16;
+const DESKTOP_RENDER_SCALE = 0.8;
+const MOBILE_RENDER_SCALE = 0.65;
+
 // Drives the entire game loop, state, and rendering.
 export class Game {
   constructor(canvasElement, drawingContext, hudElements, assets) {
@@ -116,7 +123,7 @@ export class Game {
       }
     }
 
-    if ('ontouchstart' in window) {
+    if ('ontouchstart' in window && navigator.maxTouchPoints > 0) {
       return true;
     }
 
@@ -235,31 +242,41 @@ export class Game {
   handleResize() {
     this.isTouchPrimaryDevice = this.detectTouchFirstDevice();
     const availableHeight = Math.max(window.innerHeight - this.uiPadding, 200);
-    const hasCompactViewport = window.innerWidth < 900;
-    let scale = 1;
+    let displayWidthPixels;
+    let displayHeightPixels;
+    let renderScale;
+
     if (this.isTouchPrimaryDevice === true) {
-      scale = 0.75;
-    } else if (hasCompactViewport === true) {
-      scale = 0.8;
+      renderScale = MOBILE_RENDER_SCALE;
+      displayWidthPixels = window.innerWidth;
+      displayHeightPixels = availableHeight;
+    } else {
+      renderScale = DESKTOP_RENDER_SCALE;
+      displayWidthPixels = Math.min(DESKTOP_MAX_DISPLAY_WIDTH_PX, window.innerWidth * 0.98);
+      displayHeightPixels = displayWidthPixels * DESKTOP_TARGET_ASPECT_RATIO;
+      if (displayHeightPixels > availableHeight) {
+        displayHeightPixels = availableHeight;
+        displayWidthPixels = displayHeightPixels * (16 / 9);
+      }
     }
 
-    const logicalWidth = window.innerWidth / scale;
-    const logicalHeight = availableHeight / scale;
+    const logicalWidthPixels = Math.round(displayWidthPixels / renderScale);
+    const logicalHeightPixels = Math.round(displayHeightPixels / renderScale);
 
-    this.renderScale = scale;
-    this.viewWidth = logicalWidth;
-    this.viewHeight = logicalHeight;
+    this.renderScale = renderScale;
+    this.viewWidth = logicalWidthPixels;
+    this.viewHeight = logicalHeightPixels;
 
-    this.canvas.width = logicalWidth;
-    this.canvas.height = logicalHeight;
-    this.canvas.style.width = `${window.innerWidth}px`;
-    this.canvas.style.height = `${availableHeight}px`;
+    this.canvas.width = logicalWidthPixels;
+    this.canvas.height = logicalHeightPixels;
+    this.canvas.style.width = `${displayWidthPixels}px`;
+    this.canvas.style.height = `${displayHeightPixels}px`;
 
-    this.player.setCanvasSize(logicalWidth, logicalHeight);
-    this.starfield.setCanvasSize(logicalWidth, logicalHeight);
-    this.asteroidManager.setCanvasSize(logicalWidth, logicalHeight);
-    this.powerUpManager.setCanvasSize(logicalWidth, logicalHeight);
-    this.alienManager.setCanvasSize(logicalWidth, logicalHeight);
+    this.player.setCanvasSize(logicalWidthPixels, logicalHeightPixels);
+    this.starfield.setCanvasSize(logicalWidthPixels, logicalHeightPixels);
+    this.asteroidManager.setCanvasSize(logicalWidthPixels, logicalHeightPixels);
+    this.powerUpManager.setCanvasSize(logicalWidthPixels, logicalHeightPixels);
+    this.alienManager.setCanvasSize(logicalWidthPixels, logicalHeightPixels);
   }
 
   // Handles keyboard input for movement, restart, and firing.
@@ -740,6 +757,7 @@ export class Game {
     const powerupRatios = this.getPowerupRatios();
     this.player.draw(this.context, isCloaked, flashIntensity, powerupRatios);
     this.drawExplosions();
+
     this.drawHitFlashOverlay();
     this.drawSpaceDustOverlay();
     this.drawForceFieldPulse();
