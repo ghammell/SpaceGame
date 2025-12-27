@@ -493,12 +493,20 @@ export class Game {
       this.spaceDustTimer -= deltaSeconds;
       if (this.spaceDustTimer < 0) {
         this.spaceDustTimer = 0;
-        this.spaceDustIntensity = 0;
-        this.spaceDustParticles = [];
-      } else {
-        const ratio = this.durationLookup.spaceDust > 0 ? this.spaceDustTimer / this.durationLookup.spaceDust : 0;
-        this.spaceDustIntensity = Math.max(0.25, ratio);
       }
+    }
+
+    // Keep space dust highly obscuring while active, and fade out smoothly after the timer ends.
+    const hasSpaceDustActive = this.spaceDustTimer > 0;
+    let spaceDustTargetIntensity = 0;
+    if (hasSpaceDustActive === true) {
+      spaceDustTargetIntensity = 1;
+    }
+    const intensitySmoothing = Math.min(1, deltaSeconds * 4);
+    this.spaceDustIntensity = this.spaceDustIntensity + (spaceDustTargetIntensity - this.spaceDustIntensity) * intensitySmoothing;
+    if (hasSpaceDustActive === false && this.spaceDustIntensity < 0.02) {
+      this.spaceDustIntensity = 0;
+      this.spaceDustParticles = [];
     }
 
     if (this.multiplierTimer > 0) {
@@ -687,36 +695,58 @@ export class Game {
 
   // Advances space dust particle positions.
   updateSpaceDust(deltaSeconds) {
-    if (this.spaceDustTimer <= 0 || this.spaceDustParticles.length === 0) {
+    if (this.spaceDustIntensity <= 0 || this.spaceDustParticles.length === 0) {
       return;
     }
+    const leftRespawnX = this.canvas.width * 0.2;
+    const respawnMinX = this.canvas.width * 1.02;
+    const respawnMaxX = this.canvas.width * 1.35;
     for (const particle of this.spaceDustParticles) {
       particle.x -= particle.speed * deltaSeconds;
       particle.y += particle.drift * deltaSeconds;
-      // Keep clouds on the right half; respawn to the right when they leave a small band.
-      if (particle.x < this.canvas.width * 0.55) {
-        particle.x = this.canvas.width * (0.7 + Math.random() * 0.3);
+      // Keep clouds primarily on the right; respawn off-screen so they drift in smoothly.
+      if (particle.x < leftRespawnX) {
+        particle.x = respawnMinX + Math.random() * (respawnMaxX - respawnMinX);
         particle.y = Math.random() * this.canvas.height;
       }
-      if (particle.y < -60 || particle.y > this.canvas.height + 60) {
-        particle.y = Math.random() * this.canvas.height;
+      const verticalPadding = particle.size * 0.7;
+      if (particle.y < -verticalPadding) {
+        particle.y = this.canvas.height + verticalPadding;
+      } else if (particle.y > this.canvas.height + verticalPadding) {
+        particle.y = -verticalPadding;
       }
     }
   }
 
+  // Builds a set of right-side space dust particles (mix of drifting haze and dense wall).
   buildSpaceDustParticles() {
-    const count = 50;
+    const renderScale = this.renderScale > 0 ? this.renderScale : 1;
+    const displayWidth = this.canvas.width * renderScale;
+    const displayHeight = this.canvas.height * renderScale;
+
+    const hazeCount = 50;
+    const wallCount = 28;
+    const count = hazeCount + wallCount;
     const particles = [];
-    for (let i = 0; i < count; i += 1) {
-      const startX = this.canvas.width * (0.65 + Math.random() * 0.35);
-      const size = 120 + Math.random() * 160;
+    for (let particleIndex = 0; particleIndex < count; particleIndex += 1) {
+      const isWallParticle = particleIndex < wallCount;
+      const startXDisplay = displayWidth * (isWallParticle === true ? 0.82 + Math.random() * 0.28 : 0.65 + Math.random() * 0.35);
+
+      const minSizeDisplay = isWallParticle === true ? Math.max(240, displayWidth * 0.26) : Math.max(160, displayWidth * 0.18);
+      const maxSizeDisplay = isWallParticle === true ? Math.max(420, displayWidth * 0.46) : Math.max(260, displayWidth * 0.30);
+      const sizeDisplay = minSizeDisplay + Math.random() * (maxSizeDisplay - minSizeDisplay);
+
+      const speedDisplay = isWallParticle === true ? 10 + Math.random() * 22 : 24 + Math.random() * 60;
+      const driftDisplay = (Math.random() - 0.5) * (isWallParticle === true ? 18 : 42);
+
       particles.push({
-        x: startX,
+        x: startXDisplay / renderScale,
         y: Math.random() * this.canvas.height,
-        size,
-        alpha: 0.5 + Math.random() * 0.15,
-        speed: 30 + Math.random() * 50,
-        drift: (Math.random() - 0.5) * 20,
+        size: sizeDisplay / renderScale,
+        heightFactor: isWallParticle === true ? 0.55 + Math.random() * 0.15 : 0.55 + Math.random() * 0.25,
+        alpha: isWallParticle === true ? 0.78 + Math.random() * 0.18 : 0.55 + Math.random() * 0.25,
+        speed: speedDisplay / renderScale,
+        drift: driftDisplay / renderScale,
         spriteIndex: Math.floor(Math.random() * this.spaceDustCloudImages.length)
       });
     }
@@ -839,19 +869,28 @@ export class Game {
 
   // Draws obscuring overlay for space dust.
   drawSpaceDustOverlay() {
-    if (this.spaceDustTimer <= 0 || this.spaceDustIntensity <= 0) {
+    if (this.spaceDustIntensity <= 0) {
       return;
     }
-    const alpha = Math.min(this.spaceDustIntensity, 0.95);
+    const alpha = Math.min(this.spaceDustIntensity, 1);
     this.context.save();
 
-    // Soft gradient from the right edge fading toward center.
-    const grad = this.context.createLinearGradient(this.canvas.width, 0, this.canvas.width * 0.4, 0);
-    grad.addColorStop(0, `rgba(15, 18, 32, ${alpha * 0.7})`);
-    grad.addColorStop(0.3, `rgba(15, 18, 32, ${alpha * 0.45})`);
-    grad.addColorStop(1, `rgba(15, 18, 32, 0)`);
+    // Strong right-side shroud (nearly opaque) plus cool ion-fog tint.
+    const shroudStartX = this.canvas.width * 0.25;
+    const shroudGradient = this.context.createLinearGradient(shroudStartX, 0, this.canvas.width, 0);
+    shroudGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    shroudGradient.addColorStop(0.45, `rgba(8, 12, 26, ${alpha * 0.35})`);
+    shroudGradient.addColorStop(0.75, `rgba(6, 8, 18, ${alpha * 0.82})`);
+    shroudGradient.addColorStop(1, `rgba(6, 8, 18, ${alpha * 0.97})`);
     this.context.globalAlpha = 1;
-    this.context.fillStyle = grad;
+    this.context.fillStyle = shroudGradient;
+    this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    const tintGradient = this.context.createLinearGradient(shroudStartX, 0, this.canvas.width, 0);
+    tintGradient.addColorStop(0, 'rgba(147, 197, 253, 0)');
+    tintGradient.addColorStop(0.6, `rgba(59, 130, 246, ${alpha * 0.10})`);
+    tintGradient.addColorStop(1, `rgba(148, 163, 184, ${alpha * 0.18})`);
+    this.context.fillStyle = tintGradient;
     this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     // Overlay cloud sprites for extra obstruction (SVGs only).
@@ -861,22 +900,11 @@ export class Game {
         const img = this.spaceDustCloudImages[particle.spriteIndex % this.spaceDustCloudImages.length];
         if (img.complete === true) {
           const cloudWidth = particle.size;
-          const cloudHeight = particle.size * 0.6;
-          this.context.globalAlpha = particle.alpha * intensityScale;
+          const cloudHeight = particle.size * (particle.heightFactor ?? 0.6);
+          const xStrength = Math.max(0, Math.min(1, (particle.x - shroudStartX) / (this.canvas.width - shroudStartX)));
+          const depthAlphaBoost = 0.25 + 0.9 * xStrength;
+          this.context.globalAlpha = Math.min(0.98, particle.alpha * intensityScale * depthAlphaBoost);
           this.context.drawImage(img, particle.x - cloudWidth * 0.5, particle.y - cloudHeight * 0.5, cloudWidth, cloudHeight);
-        }
-      }
-
-      // Extra dense strip on the far right.
-      for (let i = 0; i < 6; i += 1) {
-        const img = this.spaceDustCloudImages[i % this.spaceDustCloudImages.length];
-        if (img.complete === true) {
-          const cloudWidth = this.canvas.width * 0.18;
-          const cloudHeight = cloudWidth * 0.6;
-          const x = this.canvas.width * (0.88 + 0.02 * i);
-          const y = (this.canvas.height * 0.1) + (i % 3) * (this.canvas.height * 0.3);
-          this.context.globalAlpha = 0.7;
-          this.context.drawImage(img, x, y, cloudWidth, cloudHeight);
         }
       }
     }
