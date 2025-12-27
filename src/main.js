@@ -28,9 +28,14 @@ const toggleInstructionsButton = document.getElementById('toggleInstructions');
 const toggleHighScoresButton = document.getElementById('toggleHighScores');
 const toggleTestModeButton = document.getElementById('toggleTestMode');
 const testModeOverlay = document.getElementById('testModeOverlay');
+const runSetupOverlay = document.getElementById('runSetupOverlay');
 const testModeEnabledCheckbox = document.getElementById('testModeEnabled');
 const testModePowerupCheckboxes = document.querySelectorAll('.testmode-powerup');
 const testModeInfiniteLivesCheckbox = document.getElementById('testModeInfiniteLives');
+const runSetupStartButton = document.getElementById('runSetupStartButton');
+const runSetupInstructionsButton = document.getElementById('runSetupInstructionsButton');
+const runSetupTestModeButton = document.getElementById('runSetupTestModeButton');
+const runSetupDeactivateTestModeButton = document.getElementById('runSetupDeactivateTestModeButton');
 const testAsteroidSpeedMultiplierSlider = document.getElementById('testAsteroidSpeedMultiplier');
 const testAsteroidSizeMultiplierSlider = document.getElementById('testAsteroidSizeMultiplier');
 const testAsteroidSpawnRateMultiplierSlider = document.getElementById('testAsteroidSpawnRateMultiplier');
@@ -47,7 +52,10 @@ const startTestModeButton = document.getElementById('startTestModeButton');
 const pauseOverlay = document.getElementById('pauseOverlay');
 const pauseResumeButton = document.getElementById('pauseResumeButton');
 let instructionsOpenedFromStart = false;
+let instructionsOpenedFromRunSetup = false;
 let testModeOpenedFromStart = false;
+let testModeOpenedFromRunSetup = false;
+let lastTestModeLaunchButton = null;
 const infoRowElement = document.querySelector('.info-row');
 const desktopHeaderElement = document.getElementById('desktopHeader');
 const summaryFields = {
@@ -149,6 +157,31 @@ function hideOverlay(panel, button) {
   if (button !== null) {
     button.setAttribute('aria-expanded', 'false');
   }
+}
+
+// Starts a new run from the Run Setup overlay (Space or Start button).
+function beginRunFromRunSetup(game) {
+  if (runSetupOverlay === null) {
+    return;
+  }
+  if (runSetupOverlay.classList.contains('hidden') === true) {
+    return;
+  }
+  if (game === null || game === undefined) {
+    return;
+  }
+
+  // Hide the welcome overlay if it's still up (first-load path).
+  if (startOverlay !== null && startOverlay.classList.contains('hidden') === false) {
+    startOverlay.classList.add('hidden');
+    startOverlay.classList.remove('visible');
+  }
+
+  hideOverlay(runSetupOverlay, null);
+  testModeOpenedFromStart = false;
+  testModeOpenedFromRunSetup = false;
+  instructionsOpenedFromRunSetup = false;
+  game.start(3);
 }
 
 function isInputTarget(event) {
@@ -274,6 +307,16 @@ function updateTestModeButtonState(enabled) {
       startTestModeButton.classList.remove('test-enabled');
     }
   }
+  if (runSetupTestModeButton !== null) {
+    if (enabled === true) {
+      runSetupTestModeButton.classList.add('test-enabled');
+    } else {
+      runSetupTestModeButton.classList.remove('test-enabled');
+    }
+  }
+  if (runSetupDeactivateTestModeButton !== null) {
+    runSetupDeactivateTestModeButton.style.display = enabled === true ? 'inline-flex' : 'none';
+  }
 }
 
 function isTestModeSettingsLocked(game) {
@@ -356,6 +399,11 @@ function setupInfoToggles(game) {
     toggleInstructionsButton.addEventListener('click', () => {
       instructionsOpenedFromStart = false;
       testModeOpenedFromStart = false;
+      instructionsOpenedFromRunSetup = runSetupOverlay !== null && runSetupOverlay.classList.contains('hidden') === false;
+      testModeOpenedFromRunSetup = false;
+      if (instructionsOpenedFromRunSetup === true) {
+        hideOverlay(runSetupOverlay, null);
+      }
       game.pauseGame(false);
       showOverlay(instructionsOverlay, toggleInstructionsButton);
     });
@@ -378,30 +426,68 @@ function setupInfoToggles(game) {
         } else if (panel.id === 'highScoresOverlay') {
           overlayButton = toggleHighScoresButton;
         } else if (panel.id === 'testModeOverlay') {
-          overlayButton = testModeOpenedFromStart === true ? startTestModeButton : toggleTestModeButton;
+          overlayButton = lastTestModeLaunchButton ?? (testModeOpenedFromStart === true ? startTestModeButton : toggleTestModeButton);
         }
         hideOverlay(panel, overlayButton);
+        if (panel.id === 'testModeOverlay') {
+          lastTestModeLaunchButton = null;
+        }
         if (panel.id === 'instructionsOverlay' && instructionsOpenedFromStart === true && startOverlay !== null && startOverlay.classList.contains('hidden') === true) {
           startOverlay.classList.remove('hidden');
           startOverlay.classList.add('visible');
           instructionsOpenedFromStart = false;
+        }
+        if (panel.id === 'instructionsOverlay' && instructionsOpenedFromRunSetup === true) {
+          showOverlay(runSetupOverlay, null);
+          instructionsOpenedFromRunSetup = false;
         }
         if (panel.id === 'testModeOverlay' && testModeOpenedFromStart === true && startOverlay !== null && startOverlay.classList.contains('hidden') === true) {
           startOverlay.classList.remove('hidden');
           startOverlay.classList.add('visible');
           testModeOpenedFromStart = false;
         }
+        if (panel.id === 'testModeOverlay' && testModeOpenedFromRunSetup === true) {
+          showOverlay(runSetupOverlay, null);
+          testModeOpenedFromRunSetup = false;
+        }
       }
     });
   });
   document.addEventListener('keydown', (event) => {
     if (event.code === 'Escape') {
-      hideOverlay(instructionsOverlay, toggleInstructionsButton);
-      hideOverlay(highScoresOverlay, toggleHighScoresButton);
-      hideOverlay(testModeOverlay, toggleTestModeButton);
-      hideOverlay(startOverlay, null);
-      instructionsOpenedFromStart = false;
-      testModeOpenedFromStart = false;
+      if (instructionsOverlay !== null && instructionsOverlay.classList.contains('hidden') === false) {
+        hideOverlay(instructionsOverlay, toggleInstructionsButton);
+        if (instructionsOpenedFromStart === true && startOverlay !== null && startOverlay.classList.contains('hidden') === true) {
+          startOverlay.classList.remove('hidden');
+          startOverlay.classList.add('visible');
+        }
+        if (instructionsOpenedFromRunSetup === true) {
+          showOverlay(runSetupOverlay, null);
+        }
+        instructionsOpenedFromStart = false;
+        instructionsOpenedFromRunSetup = false;
+        return;
+      }
+
+      if (testModeOverlay !== null && testModeOverlay.classList.contains('hidden') === false) {
+        const overlayButton = lastTestModeLaunchButton ?? (testModeOpenedFromStart === true ? startTestModeButton : toggleTestModeButton);
+        hideOverlay(testModeOverlay, overlayButton);
+        lastTestModeLaunchButton = null;
+        if (testModeOpenedFromStart === true && startOverlay !== null && startOverlay.classList.contains('hidden') === true) {
+          startOverlay.classList.remove('hidden');
+          startOverlay.classList.add('visible');
+        }
+        if (testModeOpenedFromRunSetup === true) {
+          showOverlay(runSetupOverlay, null);
+        }
+        testModeOpenedFromStart = false;
+        testModeOpenedFromRunSetup = false;
+        return;
+      }
+
+      if (highScoresOverlay !== null && highScoresOverlay.classList.contains('hidden') === false) {
+        hideOverlay(highScoresOverlay, toggleHighScoresButton);
+      }
     }
   });
 }
@@ -409,11 +495,25 @@ function setupInfoToggles(game) {
 function setupTestModeUI(game) {
   if (toggleTestModeButton !== null && testModeOverlay !== null) {
     toggleTestModeButton.addEventListener('click', () => {
+      instructionsOpenedFromStart = false;
+      testModeOpenedFromStart = false;
+      instructionsOpenedFromRunSetup = false;
+      testModeOpenedFromRunSetup = runSetupOverlay !== null && runSetupOverlay.classList.contains('hidden') === false;
+      if (testModeOpenedFromRunSetup === true) {
+        hideOverlay(runSetupOverlay, null);
+      }
       game.pauseGame(false);
       const storedConfig = loadTestModeConfig();
       syncTestModeUIFromConfig(storedConfig);
       updateTestModeUiInteractivity(game);
+      lastTestModeLaunchButton = toggleTestModeButton;
       showOverlay(testModeOverlay, toggleTestModeButton);
+    });
+  }
+
+  if (runSetupStartButton !== null) {
+    runSetupStartButton.addEventListener('click', () => {
+      beginRunFromRunSetup(game);
     });
   }
 
@@ -461,6 +561,48 @@ function setupTestModeUI(game) {
   updateTestModeUiInteractivity(game);
 }
 
+function setupRunSetupOverlay(game) {
+  if (runSetupInstructionsButton !== null) {
+    runSetupInstructionsButton.addEventListener('click', () => {
+      instructionsOpenedFromStart = false;
+      testModeOpenedFromStart = false;
+      instructionsOpenedFromRunSetup = true;
+      testModeOpenedFromRunSetup = false;
+      hideOverlay(runSetupOverlay, null);
+      showOverlay(instructionsOverlay, toggleInstructionsButton);
+    });
+  }
+
+  if (runSetupTestModeButton !== null && testModeOverlay !== null) {
+    runSetupTestModeButton.addEventListener('click', () => {
+      instructionsOpenedFromStart = false;
+      testModeOpenedFromStart = false;
+      instructionsOpenedFromRunSetup = false;
+      testModeOpenedFromRunSetup = true;
+      hideOverlay(runSetupOverlay, null);
+
+      const storedConfig = loadTestModeConfig();
+      syncTestModeUIFromConfig(storedConfig);
+      updateTestModeUiInteractivity(game);
+      lastTestModeLaunchButton = runSetupTestModeButton;
+      showOverlay(testModeOverlay, runSetupTestModeButton);
+    });
+  }
+
+  if (runSetupDeactivateTestModeButton !== null) {
+    runSetupDeactivateTestModeButton.addEventListener('click', () => {
+      if (testModeEnabledCheckbox === null) {
+        return;
+      }
+      if (testModeEnabledCheckbox.checked !== true) {
+        return;
+      }
+      testModeEnabledCheckbox.checked = false;
+      persistAndApplyTestModeConfig(game);
+    });
+  }
+}
+
 function setupStartOverlay(game) {
   const hideStart = () => {
     if (startOverlay !== null) {
@@ -475,6 +617,7 @@ function setupStartOverlay(game) {
     const storedConfig = loadTestModeConfig();
     syncTestModeUIFromConfig(storedConfig);
     updateTestModeUiInteractivity(game);
+    lastTestModeLaunchButton = startTestModeButton;
     showOverlay(testModeOverlay, startTestModeButton);
   };
   const startRun = () => {
@@ -508,6 +651,11 @@ function setupStartOverlay(game) {
       if (startOverlay !== null && startOverlay.classList.contains('hidden') === false) {
         event.preventDefault();
         startRun();
+        return;
+      }
+      if (runSetupOverlay !== null && runSetupOverlay.classList.contains('hidden') === false) {
+        event.preventDefault();
+        beginRunFromRunSetup(game);
       }
     }
   });
@@ -547,7 +695,7 @@ function setupPauseOverlay(game) {
     true
   );
   const anyOverlayVisible = () => {
-    const overlays = [instructionsOverlay, highScoresOverlay, testModeOverlay, summaryOverlayElement, startOverlay];
+    const overlays = [instructionsOverlay, highScoresOverlay, testModeOverlay, runSetupOverlay, summaryOverlayElement, startOverlay];
     return overlays.some((panel) => panel !== null && panel.classList.contains('hidden') === false);
   };
   game.onPauseChange = (isPaused, allowOverlay) => {
@@ -575,10 +723,22 @@ function setupTapToThrust(game) {
     if (startOverlay !== null && startOverlay.classList.contains('hidden') === false) {
       return;
     }
+    if (runSetupOverlay !== null && runSetupOverlay.classList.contains('hidden') === false) {
+      return;
+    }
     if (pauseOverlay !== null && pauseOverlay.classList.contains('hidden') === false) {
       return;
     }
     if (summaryOverlayElement !== null && summaryOverlayElement.classList.contains('visible') === true) {
+      return;
+    }
+    if (instructionsOverlay !== null && instructionsOverlay.classList.contains('hidden') === false) {
+      return;
+    }
+    if (highScoresOverlay !== null && highScoresOverlay.classList.contains('hidden') === false) {
+      return;
+    }
+    if (testModeOverlay !== null && testModeOverlay.classList.contains('hidden') === false) {
       return;
     }
     if (game.isCountdownActive === true) {
@@ -618,29 +778,40 @@ async function bootstrapGame() {
   const initialTestMode = loadTestModeConfig();
   game.applyTestModeConfig(initialTestMode);
   syncTestModeUIFromConfig(initialTestMode);
-  if (initialTestMode.enabled === true && toggleTestModeButton !== null) {
-    toggleTestModeButton.classList.add('test-enabled');
-  }
-  if (initialTestMode.enabled === true && startTestModeButton !== null) {
-    startTestModeButton.classList.add('test-enabled');
-  }
+  updateTestModeButtonState(initialTestMode.enabled === true);
   if (summaryFields.saveButton !== null) {
     summaryFields.saveButton.addEventListener('click', () => {
       game.saveHighScore();
     });
   }
   summaryRestartButton.addEventListener('click', () => {
-    game.start();
+    game.hideSummary();
+    testModeOpenedFromStart = false;
+    testModeOpenedFromRunSetup = false;
+    instructionsOpenedFromRunSetup = false;
+    instructionsOpenedFromStart = false;
+    lastTestModeLaunchButton = null;
+    showOverlay(runSetupOverlay, null);
   });
   setupSummaryToggles();
   setupInfoToggles(game);
   setupTestModeUI(game);
+  setupRunSetupOverlay(game);
   setupStartOverlay(game);
   setupPauseOverlay(game);
   setupTapToThrust(game);
   updateInfoRowVisibility(game);
   applyUiPadding(game);
   game.handleResize();
+  const updateTestModeButtonAvailability = () => {
+    const isRunActive = game.isRunning === true && game.isGameOver !== true;
+    if (toggleTestModeButton !== null) {
+      toggleTestModeButton.disabled = isRunActive === true;
+      toggleTestModeButton.title = isRunActive === true ? 'Test Mode can only be changed before a run.' : '';
+    }
+  };
+  updateTestModeButtonAvailability();
+  window.setInterval(updateTestModeButtonAvailability, 250);
   window.addEventListener('resize', () => {
     updateInfoRowVisibility(game);
     applyUiPadding(game);

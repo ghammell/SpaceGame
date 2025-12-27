@@ -92,6 +92,8 @@ export async function loadPowerUpIcons() {
     ['blaster', '../../assets/powerups/blaster.svg'],
     ['slow', '../../assets/powerups/slow.svg'],
     ['forceField', '../../assets/powerups/forcefield.svg'],
+    ['allyAlien', '../../assets/powerups/wingman.svg'],
+    ['shootingStarStorm', '../../assets/powerups/starstorm.svg'],
     ['orbitalLaser', '../../assets/powerups/orbitallaser.svg'],
     ['seekerMissiles', '../../assets/powerups/seeker.svg'],
     ['missileBarrage', '../../assets/powerups/missiles.svg'],

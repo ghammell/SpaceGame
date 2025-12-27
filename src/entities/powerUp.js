@@ -2,10 +2,12 @@ let testModeConfig = { enabled: false, allowed: null };
 
 const powerUpConfigs = {
   extraLife: { color: '#6bf178', label: '+1', durationSeconds: 0 },
-  cloak: { color: '#6ac7ff', label: 'C', durationSeconds: 6 },
+  cloak: { color: '#ff8a3d', label: 'EB', durationSeconds: 6 },
   blaster: { color: '#ffde59', label: 'B', durationSeconds: 9 },
   slow: { color: '#b39cff', label: 'S', durationSeconds: 7 },
   forceField: { color: '#60a5fa', label: 'F', durationSeconds: 8 },
+  allyAlien: { color: '#67f4c1', label: 'AA', durationSeconds: 8 },
+  shootingStarStorm: { color: '#ffb347', label: 'SS', durationSeconds: 5 },
   orbitalLaser: { color: '#f472b6', label: 'OL', durationSeconds: 7 },
   seekerMissiles: { color: '#a78bfa', label: 'HM', durationSeconds: 7 },
   missileBarrage: { color: '#93c5fd', label: 'MB', durationSeconds: 6 },
@@ -111,26 +113,32 @@ export function setTestModeConfig(enabled, allowedKeys) {
 export function getRandomPowerUpType() {
   if (testModeConfig.enabled === true) {
     if (testModeConfig.allowed !== null) {
-      const idx = Math.floor(Math.random() * testModeConfig.allowed.length);
-      return testModeConfig.allowed[idx];
+      const randomIndex = Math.floor(Math.random() * testModeConfig.allowed.length);
+      return testModeConfig.allowed[randomIndex];
     }
   }
   const roll = Math.random();
   if (roll < 0.5) {
-    // Positive pool: original weighted distribution + missile barrage + orbital laser + seeker missiles.
+    // Positive pool: original weighted distribution + new specials.
     // - missileBarrage: 10% of positives
     // - orbitalLaser: 8% of positives
     // - seekerMissiles: 8% of positives
+    // - allyAlien: 8% of positives
+    // - shootingStarStorm: 8% of positives
     //
     // Approx overall odds (normal play):
     // - missileBarrage: 50% * 10% = ~5% (about 1 in 20 powerups)
     // - orbitalLaser: 50% * 8% = ~4% (about 1 in 25 powerups)
     // - seekerMissiles: 50% * 8% = ~4% (about 1 in 25 powerups)
+    // - allyAlien: 50% * 8% = ~4% (about 1 in 25 powerups)
+    // - shootingStarStorm: 50% * 8% = ~4% (about 1 in 25 powerups)
     const positiveWeight = Math.random();
     const missileShare = 0.10;
     const orbitalLaserShare = 0.08;
     const seekerMissilesShare = 0.08;
-    const remainingShare = 1 - missileShare - orbitalLaserShare - seekerMissilesShare;
+    const allyAlienShare = 0.08;
+    const shootingStarStormShare = 0.08;
+    const remainingShare = 1 - missileShare - orbitalLaserShare - seekerMissilesShare - allyAlienShare - shootingStarStormShare;
 
     const extraLifeCutoff = 0.28 * remainingShare;
     const cloakCutoff = (0.28 + 0.22) * remainingShare;
@@ -139,14 +147,38 @@ export function getRandomPowerUpType() {
     const forceFieldCutoff = (0.28 + 0.22 + 0.18 + 0.14 + 0.10) * remainingShare;
     const multiplierCutoff = remainingShare;
 
-    if (positiveWeight < extraLifeCutoff) return 'extraLife';
-    if (positiveWeight < cloakCutoff) return 'cloak';
-    if (positiveWeight < blasterCutoff) return 'blaster';
-    if (positiveWeight < slowCutoff) return 'slow';
-    if (positiveWeight < forceFieldCutoff) return 'forceField';
-    if (positiveWeight < multiplierCutoff) return 'multiplier';
-    if (positiveWeight < remainingShare + seekerMissilesShare) return 'seekerMissiles';
-    if (positiveWeight < remainingShare + orbitalLaserShare) return 'orbitalLaser';
+    if (positiveWeight < extraLifeCutoff) {
+      return 'extraLife';
+    }
+    if (positiveWeight < cloakCutoff) {
+      return 'cloak';
+    }
+    if (positiveWeight < blasterCutoff) {
+      return 'blaster';
+    }
+    if (positiveWeight < slowCutoff) {
+      return 'slow';
+    }
+    if (positiveWeight < forceFieldCutoff) {
+      return 'forceField';
+    }
+    if (positiveWeight < multiplierCutoff) {
+      return 'multiplier';
+    }
+
+    const specialWeight = positiveWeight - remainingShare;
+    if (specialWeight < shootingStarStormShare) {
+      return 'shootingStarStorm';
+    }
+    if (specialWeight < shootingStarStormShare + allyAlienShare) {
+      return 'allyAlien';
+    }
+    if (specialWeight < shootingStarStormShare + allyAlienShare + seekerMissilesShare) {
+      return 'seekerMissiles';
+    }
+    if (specialWeight < shootingStarStormShare + allyAlienShare + seekerMissilesShare + orbitalLaserShare) {
+      return 'orbitalLaser';
+    }
     return 'missileBarrage';
   }
   // Negative pool: original weighted distribution + asteroid splitter.
@@ -159,10 +191,18 @@ export function getRandomPowerUpType() {
   const waveCutoff = (0.35 + 0.25 + 0.22) * remainingShare;
   const spaceDustCutoff = remainingShare;
 
-  if (negativeWeight < blackHoleCutoff) return 'blackHole';
-  if (negativeWeight < solarFlareCutoff) return 'solarFlare';
-  if (negativeWeight < waveCutoff) return 'wave';
-  if (negativeWeight < spaceDustCutoff) return 'spaceDust';
+  if (negativeWeight < blackHoleCutoff) {
+    return 'blackHole';
+  }
+  if (negativeWeight < solarFlareCutoff) {
+    return 'solarFlare';
+  }
+  if (negativeWeight < waveCutoff) {
+    return 'wave';
+  }
+  if (negativeWeight < spaceDustCutoff) {
+    return 'spaceDust';
+  }
   return 'asteroidSplitter';
 }
 

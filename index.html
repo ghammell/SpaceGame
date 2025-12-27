@@ -17,7 +17,6 @@
   <section class="info-row">
     <button id="toggleInstructions" class="info-button" aria-expanded="false" aria-controls="instructionsOverlay">Show Instructions</button>
     <button id="toggleHighScores" class="info-button" aria-expanded="false" aria-controls="highScoresOverlay">Show High Scores</button>
-    <button id="toggleTestMode" class="info-button" aria-expanded="false" aria-controls="testModeOverlay">Test Mode</button>
   </section>
   <section id="instructionsOverlay" class="modal-overlay hidden" aria-label="Instructions">
     <div class="modal-card">
@@ -50,10 +49,12 @@
         </div>
         <div class="info-grid power-grid">
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/heart_plus.svg" alt="Extra life" /><div>Extra life</div><span>Gain 1 life</span></div>
-          <div class="power-tile"><img class="summary-icon" src="./assets/powerups/cloak.svg" alt="Cloak" /><div>Cloak</div><span>Phase through asteroids</span></div>
+          <div class="power-tile"><img class="summary-icon" src="./assets/powerups/cloak.svg" alt="Explosive barrier" /><div>Explosive Barrier</div><span>Detonate hazards on contact</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/blaster.svg" alt="Blaster" /><div>Blaster</div><span>Unlimited shots while active</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/slow.svg" alt="Slow" /><div>Slow</div><span>Hazards move slower</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/forcefield.svg" alt="Force field" /><div>Force Field</div><span>Pulses clear nearby asteroids</span></div>
+          <div class="power-tile"><img class="summary-icon" src="./assets/powerups/wingman.svg" alt="Wingman" /><div>Wingman</div><span>Friendly alien fires at hazards</span></div>
+          <div class="power-tile"><img class="summary-icon" src="./assets/powerups/starstorm.svg" alt="Star storm" /><div>Star Storm</div><span>Shooting stars shred asteroids</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/orbitallaser.svg" alt="Orbital laser" /><div>Orbital Laser</div><span>3 pulse sweeps clear hazards</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/seeker.svg" alt="Seeker missiles" /><div>Seeker Missiles</div><span>Periodic homing missiles hit random hazards</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/missiles.svg" alt="Missile barrage" /><div>Missile Barrage</div><span>Delayed missiles clear asteroids + aliens</span></div>
@@ -114,15 +115,34 @@
       </div>
     </div>
   </section>
+
+  <!-- Intermediary pre-run modal (shown before starting a new run, after the first run). -->
+  <section id="runSetupOverlay" class="modal-overlay hidden run-setup-overlay" aria-label="Run setup">
+    <div class="modal-card start-card">
+      <div class="start-title">Ready?</div>
+      <div class="start-subtitle">Press Space or click Start.</div>
+      <div class="start-message">Start a new run, or tweak things first.</div>
+      <div class="start-actions">
+        <button id="runSetupStartButton" class="summary-button">Start</button>
+        <button id="runSetupInstructionsButton" class="info-button ghost">View Instructions</button>
+        <div class="run-setup-testmode-row">
+          <button id="runSetupTestModeButton" class="info-button ghost" type="button">Test Mode</button>
+          <button id="runSetupDeactivateTestModeButton" class="info-button ghost run-setup-deactivate-button" type="button">Deactivate</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Full test mode config modal (only shown when the user clicks into it). -->
   <section id="testModeOverlay" class="modal-overlay hidden" aria-label="Test mode">
     <div class="modal-card">
       <div class="modal-header">
         <div class="summary-title small">Test Mode</div>
-        <button id="closeTestMode" class="modal-close" data-close-target="testModeOverlay" aria-label="Close test mode">×</button>
+          <button id="closeTestMode" class="modal-close" data-close-target="testModeOverlay" aria-label="Close test mode">×</button>
       </div>
       <div class="modal-body">
         <div class="modern-text">
-          Test mode disables saving high scores. Settings apply immediately.
+          Settings apply immediately. Test mode disables saving high scores.
         </div>
         <div class="testmode-section">
           <div class="summary-title small modal-section-title">Test Mode</div>
@@ -187,10 +207,12 @@
           </div>
           <div class="testmode-grid">
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="extraLife" /> <img class="testmode-icon" src="./assets/powerups/heart_plus.svg" alt="" aria-hidden="true" /> Extra Life <span class="testmode-desc">Gain one life</span></label>
-            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="cloak" /> <img class="testmode-icon" src="./assets/powerups/cloak.svg" alt="" aria-hidden="true" /> Cloak <span class="testmode-desc">Phase through asteroids</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="cloak" /> <img class="testmode-icon" src="./assets/powerups/cloak.svg" alt="" aria-hidden="true" /> Explosive Barrier <span class="testmode-desc">Detonate hazards on contact</span></label>
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="blaster" /> <img class="testmode-icon" src="./assets/powerups/blaster.svg" alt="" aria-hidden="true" /> Blaster <span class="testmode-desc">Fire while active</span></label>
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="slow" /> <img class="testmode-icon" src="./assets/powerups/slow.svg" alt="" aria-hidden="true" /> Slow <span class="testmode-desc">Hazards move slower</span></label>
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="forceField" /> <img class="testmode-icon" src="./assets/powerups/forcefield.svg" alt="" aria-hidden="true" /> Force Field <span class="testmode-desc">Pulses clear nearby asteroids</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="allyAlien" /> <img class="testmode-icon" src="./assets/powerups/wingman.svg" alt="" aria-hidden="true" /> Wingman <span class="testmode-desc">Friendly alien fires at hazards</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="shootingStarStorm" /> <img class="testmode-icon" src="./assets/powerups/starstorm.svg" alt="" aria-hidden="true" /> Star Storm <span class="testmode-desc">Shooting stars shred asteroids</span></label>
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="orbitalLaser" /> <img class="testmode-icon" src="./assets/powerups/orbitallaser.svg" alt="" aria-hidden="true" /> Orbital Laser <span class="testmode-desc">3 pulse sweeps clear hazards</span></label>
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="seekerMissiles" /> <img class="testmode-icon" src="./assets/powerups/seeker.svg" alt="" aria-hidden="true" /> Seeker Missiles <span class="testmode-desc">Periodic homing missiles</span></label>
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="missileBarrage" /> <img class="testmode-icon" src="./assets/powerups/missiles.svg" alt="" aria-hidden="true" /> Missile Barrage <span class="testmode-desc">Delayed missiles clear asteroids + aliens</span></label>
@@ -235,7 +257,7 @@
                 <span id="summaryDestroyedScore">0</span>
               </div>
               <div class="summary-row summary-sub">
-                <span><img class="summary-icon" src="./assets/powerups/cloak.svg" alt="Phased" />Phased score</span>
+                <span><img class="summary-icon" src="./assets/powerups/cloak.svg" alt="Barrier" />Barrier score</span>
                 <span id="summaryPhasedScore">0</span>
               </div>
               <div class="summary-row summary-sub">
@@ -258,7 +280,7 @@
               <span class="chevron">▸</span>
             </button>
             <div class="summary-details">
-              <div class="summary-row"><span>Cloak uptime</span><span id="summaryCloak">0s</span></div>
+              <div class="summary-row"><span>Barrier uptime</span><span id="summaryCloak">0s</span></div>
               <div class="summary-row"><span>Blaster uptime</span><span id="summaryBlaster">0s</span></div>
               <div class="summary-row"><span>Slow uptime</span><span id="summarySlow">0s</span></div>
             </div>

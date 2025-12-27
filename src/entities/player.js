@@ -275,16 +275,12 @@ export class Player {
     drawingContext.restore();
   }
 
-  // Draws the spaceman with tilt, optional tint, and thruster glow.
-  draw(drawingContext, isCloaked, flashIntensity, powerupRatios) {
+  // Draws the spaceman with tilt, optional tint, and thruster glow (plus powerup visuals).
+  draw(drawingContext, isBarrierActive, flashIntensity, powerupRatios) {
     drawingContext.save();
     drawingContext.translate(this.positionX, this.positionY);
     const tiltAngle = Math.max(Math.min(this.velocityY / 800, 0.35), -0.35);
     drawingContext.rotate(tiltAngle);
-
-    if (isCloaked === true) {
-      drawingContext.globalAlpha = 0.28;
-    }
 
     if (this.spriteImage !== undefined && this.spriteImage !== null) {
       drawingContext.drawImage(this.spriteImage, -this.width * 0.5, -this.height * 0.5, this.width, this.height);
@@ -300,23 +296,8 @@ export class Player {
       drawingContext.globalCompositeOperation = 'source-over';
     }
 
-    if (isCloaked === true) {
-      // Shimmer outline to show the cloak is active.
-      const time = performance.now() * 0.001;
-      const sweep = Math.sin(time * 4) * this.width * 0.4;
-      const shimmer = drawingContext.createLinearGradient(-this.width * 0.7 + sweep, 0, this.width * 0.7 + sweep, 0);
-      shimmer.addColorStop(0, 'rgba(106, 199, 255, 0)');
-      shimmer.addColorStop(0.5, 'rgba(106, 199, 255, 0.95)');
-      shimmer.addColorStop(1, 'rgba(106, 199, 255, 0)');
-      drawingContext.globalCompositeOperation = 'screen';
-      drawingContext.globalAlpha = 0.65;
-      drawingContext.strokeStyle = shimmer;
-      drawingContext.lineWidth = 3;
-      drawingContext.beginPath();
-      drawingContext.roundRect(-this.width * 0.52, -this.height * 0.52, this.width * 1.04, this.height * 1.04, 14);
-      drawingContext.stroke();
-      drawingContext.globalCompositeOperation = 'source-over';
-      drawingContext.globalAlpha = 1;
+    if (isBarrierActive === true) {
+      this.drawExplosiveBarrier(drawingContext, powerupRatios);
     }
 
     this.drawDamageSparks(drawingContext);
@@ -336,6 +317,57 @@ export class Player {
     }
 
     this.drawPowerupIndicators(drawingContext, powerupRatios);
+
+    drawingContext.restore();
+  }
+
+  // Draws the explosive barrier ring when the former "cloak" powerup is active.
+  drawExplosiveBarrier(drawingContext, powerupRatios) {
+    const ratio = powerupRatios !== undefined && typeof powerupRatios.cloak === 'number' ? powerupRatios.cloak : 1;
+    const timeSeconds = performance.now() * 0.001;
+    const pulse = 0.65 + 0.35 * Math.sin(timeSeconds * 6.2);
+    const intensity = (0.55 + 0.45 * ratio) * pulse;
+
+    const barrierRadius = Math.max(this.width, this.height) * 0.72;
+    const barrierThickness = 3.5 + 2.5 * intensity;
+
+    drawingContext.save();
+    drawingContext.globalCompositeOperation = 'screen';
+
+    // Outer ring.
+    drawingContext.globalAlpha = 0.65 * intensity;
+    drawingContext.strokeStyle = 'rgba(255, 179, 71, 0.95)';
+    drawingContext.lineWidth = barrierThickness;
+    drawingContext.beginPath();
+    drawingContext.arc(0, 0, barrierRadius, 0, Math.PI * 2);
+    drawingContext.stroke();
+
+    // Inner hot rim.
+    drawingContext.globalAlpha = 0.35 * intensity;
+    drawingContext.strokeStyle = 'rgba(255, 107, 107, 0.95)';
+    drawingContext.lineWidth = Math.max(2, barrierThickness * 0.55);
+    drawingContext.beginPath();
+    drawingContext.arc(0, 0, barrierRadius * 0.86, 0, Math.PI * 2);
+    drawingContext.stroke();
+
+    // Rotating sparks.
+    const sparkCount = 6;
+    for (let sparkIndex = 0; sparkIndex < sparkCount; sparkIndex += 1) {
+      const angle = (timeSeconds * 2.1) + sparkIndex * (Math.PI * 2 / sparkCount);
+      const spikeLength = 8 + 6 * intensity;
+      const startX = Math.cos(angle) * (barrierRadius - 2);
+      const startY = Math.sin(angle) * (barrierRadius - 2);
+      const endX = Math.cos(angle) * (barrierRadius + spikeLength);
+      const endY = Math.sin(angle) * (barrierRadius + spikeLength);
+      drawingContext.globalAlpha = 0.55 * intensity;
+      drawingContext.strokeStyle = sparkIndex % 2 === 0 ? 'rgba(255, 246, 214, 0.95)' : 'rgba(255, 179, 71, 0.9)';
+      drawingContext.lineWidth = 2.2;
+      drawingContext.lineCap = 'round';
+      drawingContext.beginPath();
+      drawingContext.moveTo(startX, startY);
+      drawingContext.lineTo(endX, endY);
+      drawingContext.stroke();
+    }
 
     drawingContext.restore();
   }
@@ -412,9 +444,11 @@ export class Player {
   // Maps powerup keys to indicator colors.
   getPowerupColor(key) {
     const map = {
-      cloak: '#6ac7ff',
+      cloak: '#ff8a3d',
       blaster: '#ffde59',
       slow: '#b39cff',
+      allyAlien: '#67f4c1',
+      shootingStarStorm: '#ffb347',
       forceField: '#60a5fa',
       orbitalLaser: '#f472b6',
       seekerMissiles: '#a78bfa',

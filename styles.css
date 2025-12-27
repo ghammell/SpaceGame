@@ -427,6 +427,16 @@ body {
   box-shadow: var(--shadow);
 }
 
+.info-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: none;
+}
+
+.info-button:disabled:hover {
+  filter: none;
+}
+
 .info-button:hover {
   filter: brightness(1.08);
 }
@@ -443,10 +453,49 @@ body {
   border-color: rgba(255, 255, 255, 0.08);
 }
 
+.info-button.ghost.test-enabled {
+  border-color: rgba(244, 211, 94, 0.8);
+  background: linear-gradient(90deg, rgba(248, 196, 80, 0.25), rgba(255, 221, 118, 0.2));
+}
+
+.run-setup-deactivate-button {
+  display: none;
+  padding: 10px 12px;
+  font-size: 12px;
+  min-height: 36px;
+  white-space: nowrap;
+}
+
 .start-actions .summary-button,
 .start-actions .info-button {
   width: 100%;
   min-height: 44px;
+}
+
+.start-actions .run-setup-testmode-row {
+  display: flex;
+  width: 100%;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.start-actions .run-setup-testmode-row .info-button {
+  width: auto;
+}
+
+.start-actions .run-setup-testmode-row #runSetupTestModeButton {
+  flex: 1 1 220px;
+}
+
+.start-actions .run-setup-testmode-row #runSetupDeactivateTestModeButton {
+  flex: 0 0 auto;
+}
+
+.start-actions .run-setup-deactivate-button {
+  min-height: 36px;
+  padding: 8px 10px;
+  font-size: 12px;
 }
 
 .info-grid {
@@ -607,6 +656,28 @@ body {
   background: rgba(5, 8, 18, 0.82);
   backdrop-filter: blur(8px);
   z-index: 20;
+}
+
+.run-setup-overlay {
+  background: rgba(5, 8, 18, 0.68);
+  backdrop-filter: blur(6px);
+}
+
+.run-setup-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+  margin-bottom: 14px;
+}
+
+.run-setup-actions .summary-button {
+  width: auto;
+  white-space: nowrap;
+}
+
+.run-setup-hint {
+  margin: 0;
 }
 
 .modal-overlay.hidden {

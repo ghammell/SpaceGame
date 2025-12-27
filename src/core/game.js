@@ -7,8 +7,10 @@ import { Explosion } from '../effects/explosion.js';
 import { Bullet } from '../entities/bullet.js';
 import { Missile } from '../entities/missile.js';
 import { HazardShootingStar } from '../entities/hazardShootingStar.js';
+import { StormShootingStar } from '../entities/stormShootingStar.js';
 import { Asteroid } from '../entities/asteroid.js';
 import { setTestModeConfig } from '../entities/powerUp.js';
+import { AllyAlien } from '../entities/allyAlien.js';
 
 // Desktop canvas sizing: keep the on-screen playfield at this width (or smaller), but render at higher resolution
 // so entities appear smaller without introducing padding inside the canvas.
@@ -31,6 +33,14 @@ export class Game {
     this.asteroidManager = new AsteroidManager(this.canvas.width, this.canvas.height, assets.asteroidSprites);
     this.powerUpManager = new PowerUpManager(this.canvas.width, this.canvas.height, assets.powerUpIcons);
     this.alienManager = new AlienManager(this.canvas.width, this.canvas.height, assets.alienSprites);
+    this.allyAlienSprite = null;
+    if (Array.isArray(assets.alienSprites) === true) {
+      if (assets.alienSprites.length > 0) {
+        this.allyAlienSprite = assets.alienSprites[0];
+      }
+    } else if (assets.alienSprites !== null && assets.alienSprites !== undefined) {
+      this.allyAlienSprite = assets.alienSprites;
+    }
     this.heartIcon = new Image();
     this.heartIcon.src = './assets/hud-heart.svg';
     this.scoreIcon = new Image();
@@ -50,6 +60,8 @@ export class Game {
     this.hazardShootingStars = [];
     this.hazardShootingStarSpawnTimer = 0;
     this.hazardShootingStarNextSpawnDelay = this.getNextHazardShootingStarSpawnDelay();
+    this.stormShootingStars = [];
+    this.stormShootingStarSpawnCooldownSeconds = 0;
     this.isRunning = false;
     this.isGameOver = false;
     this.livesRemaining = 3;
@@ -59,14 +71,17 @@ export class Game {
     this.cloakTimer = 0;
     this.blasterTimer = 0;
     this.slowTimer = 0;
+    this.allyAlienTimer = 0;
+    this.shootingStarStormTimer = 0;
+    this.allyAlien = null;
     this.multiplierTimer = 0;
     this.scoreMultiplier = 1;
     this.blackHoleTimer = 0;
     this.solarFlareTimer = 0;
     this.waveTimer = 0;
     this.waveSettings = { amplitude: 78, speed: 2.6 };
-    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
-    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, allyAlien: 0, shootingStarStorm: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, allyAlien: 0, shootingStarStorm: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
     this.forceFieldTimer = 0;
     this.forceFieldPulseCooldown = 0;
     this.forceFieldPulseActive = 0;
@@ -181,13 +196,16 @@ export class Game {
 
   // Starts or restarts the game.
   start(countdownSeconds = 3) {
+    const wasRunning = this.isRunning === true;
     this.resetWorld();
     this.isCountdownActive = true;
     this.countdownRemaining = countdownSeconds;
     this.isRunning = true;
     this.isPaused = false;
     this.lastFrameTimestamp = 0;
-    this.animationFrameId = window.requestAnimationFrame(this.gameLoop);
+    if (wasRunning !== true) {
+      this.animationFrameId = window.requestAnimationFrame(this.gameLoop);
+    }
   }
 
   // Enables a single-powerup test mode.
@@ -257,6 +275,9 @@ export class Game {
     this.cloakTimer = 0;
     this.blasterTimer = 0;
     this.slowTimer = 0;
+    this.allyAlienTimer = 0;
+    this.shootingStarStormTimer = 0;
+    this.allyAlien = null;
     this.multiplierTimer = 0;
     this.scoreMultiplier = 1;
     this.blackHoleTimer = 0;
@@ -276,8 +297,8 @@ export class Game {
     this.spaceDustIntensity = 0;
     this.spaceDustParticles = [];
     this.orbitalLaserStartAngleRadians = 0;
-    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
-    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, allyAlien: 0, shootingStarStorm: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, allyAlien: 0, shootingStarStorm: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
     this.isCountdownActive = false;
     this.countdownRemaining = 0;
     this.resetFrameTimestampNextFrame = false;
@@ -303,6 +324,8 @@ export class Game {
     this.hazardShootingStars = [];
     this.hazardShootingStarSpawnTimer = 0;
     this.hazardShootingStarNextSpawnDelay = this.getNextHazardShootingStarSpawnDelay();
+    this.stormShootingStars = [];
+    this.stormShootingStarSpawnCooldownSeconds = 0;
     this.hideSummary();
     this.updateHud();
     this.updateStatus('');
@@ -347,6 +370,11 @@ export class Game {
     this.asteroidManager.setCanvasSize(logicalWidthPixels, logicalHeightPixels);
     this.powerUpManager.setCanvasSize(logicalWidthPixels, logicalHeightPixels);
     this.alienManager.setCanvasSize(logicalWidthPixels, logicalHeightPixels);
+    if (this.allyAlien !== null && this.allyAlien !== undefined) {
+      if (typeof this.allyAlien.setCanvasSize === 'function') {
+        this.allyAlien.setCanvasSize(logicalWidthPixels, logicalHeightPixels);
+      }
+    }
   }
 
   // Handles keyboard input for movement, restart, and firing.
@@ -485,8 +513,10 @@ export class Game {
     this.alienManager.update(deltaSeconds, asteroidSpeedScale, this.player);
     this.applyOrbitalLaser(deltaSeconds);
     this.updateSeekerMissiles(deltaSeconds);
+    this.updateAllyAlien(deltaSeconds);
     this.updateBullets(deltaSeconds);
     this.updateMissiles(deltaSeconds);
+    this.updateShootingStarStorm(deltaSeconds);
     this.updateHazardShootingStars(deltaSeconds);
     this.updateExplosions(deltaSeconds);
     this.updateSpaceDust(deltaSeconds);
@@ -496,12 +526,18 @@ export class Game {
 
   // Reduces gameplay timers each frame.
   updateTimers(deltaSeconds) {
+    if (this.isGameOver === true) {
+      return;
+    }
+    const prevCloak = this.cloakTimer;
     const prevBlackHole = this.blackHoleTimer;
     const prevSolarFlare = this.solarFlareTimer;
     const prevWave = this.waveTimer;
     const prevMultiplier = this.multiplierTimer;
     const prevOrbitalLaser = this.orbitalLaserTimer;
     const prevSeekerMissiles = this.seekerMissilesTimer;
+    const prevAllyAlien = this.allyAlienTimer;
+    const prevShootingStarStorm = this.shootingStarStormTimer;
     const prevMissileBarrage = this.missileBarrageTimer;
     const prevAsteroidSplitter = this.asteroidSplitterTimer;
     const prevSpaceDust = this.spaceDustTimer;
@@ -521,6 +557,12 @@ export class Game {
     }
     if (this.slowTimer > 0) {
       this.powerupUptime.slow += deltaSeconds;
+    }
+    if (this.allyAlienTimer > 0) {
+      this.powerupUptime.allyAlien += deltaSeconds;
+    }
+    if (this.shootingStarStormTimer > 0) {
+      this.powerupUptime.shootingStarStorm += deltaSeconds;
     }
     if (this.forceFieldTimer > 0) {
       this.powerupUptime.forceField += deltaSeconds;
@@ -580,6 +622,20 @@ export class Game {
       this.slowTimer -= deltaSeconds;
       if (this.slowTimer < 0) {
         this.slowTimer = 0;
+      }
+    }
+
+    if (this.allyAlienTimer > 0) {
+      this.allyAlienTimer -= deltaSeconds;
+      if (this.allyAlienTimer < 0) {
+        this.allyAlienTimer = 0;
+      }
+    }
+
+    if (this.shootingStarStormTimer > 0) {
+      this.shootingStarStormTimer -= deltaSeconds;
+      if (this.shootingStarStormTimer < 0) {
+        this.shootingStarStormTimer = 0;
       }
     }
 
@@ -681,6 +737,15 @@ export class Game {
     }
     if (prevMultiplier > 0 && this.multiplierTimer <= 0) {
       // no bonus for multiplier ending
+    }
+    if (prevCloak > 0 && this.cloakTimer <= 0 && this.isGameOver === false) {
+      this.updateStatus('Explosive barrier offline.');
+    }
+    if (prevAllyAlien > 0 && this.allyAlienTimer <= 0 && this.isGameOver === false) {
+      this.updateStatus('Wingman departed.');
+    }
+    if (prevShootingStarStorm > 0 && this.shootingStarStormTimer <= 0 && this.isGameOver === false) {
+      this.updateStatus('Star storm ended.');
     }
     if (prevOrbitalLaser > 0 && this.orbitalLaserTimer <= 0 && this.isGameOver === false) {
       this.updateStatus('Orbital laser offline.');
@@ -1000,6 +1065,88 @@ export class Game {
     this.hazardShootingStars.push(shootingStar);
   }
 
+  // Spawns a friendly storm shooting star that flies left-to-right.
+  spawnStormShootingStar() {
+    const startX = -80;
+    const startY = 70 + Math.random() * (this.canvas.height - 140);
+    const speedX = 820 + Math.random() * 420;
+    const speedY = (Math.random() * 2 - 1) * (140 + Math.random() * 180);
+    const trailLength = 420 + Math.random() * 260;
+    const thickness = 3 + Math.random() * 2.4;
+    const color = { red: 255, green: 236, blue: 184 };
+    const glowColor = { red: 255, green: 179, blue: 71 };
+    const stormStar = new StormShootingStar(startX, startY, speedX, speedY, {
+      trailLength,
+      thickness,
+      lifeSeconds: 1.35 + Math.random() * 0.9,
+      color,
+      glowColor
+    });
+    this.stormShootingStars.push(stormStar);
+  }
+
+  // Updates the Star Storm powerup streaks and resolves asteroid hits.
+  updateShootingStarStorm(deltaSeconds) {
+    const stormActive = this.shootingStarStormTimer > 0;
+    if (stormActive !== true && this.stormShootingStars.length === 0) {
+      return;
+    }
+
+    if (stormActive === true) {
+      this.stormShootingStarSpawnCooldownSeconds -= deltaSeconds;
+      if (this.stormShootingStarSpawnCooldownSeconds <= 0) {
+        this.spawnStormShootingStar();
+        const baseIntervalSeconds = 0.14;
+        const jitter = 0.75 + Math.random() * 0.6;
+        this.stormShootingStarSpawnCooldownSeconds = baseIntervalSeconds * jitter;
+      }
+    }
+
+    if (this.stormShootingStars.length === 0) {
+      return;
+    }
+
+    for (const stormStar of this.stormShootingStars) {
+      stormStar.update(deltaSeconds);
+    }
+
+    const remainingStars = [];
+    const maxAsteroidClearsPerFrame = 6;
+    let clearedThisFrame = 0;
+
+    for (const stormStar of this.stormShootingStars) {
+      let hitAsteroid = false;
+      if (clearedThisFrame < maxAsteroidClearsPerFrame && this.asteroidManager.asteroids.length > 0) {
+        const headBounds = stormStar.getHeadBounds();
+        for (let asteroidIndex = this.asteroidManager.asteroids.length - 1; asteroidIndex >= 0; asteroidIndex -= 1) {
+          const asteroid = this.asteroidManager.asteroids[asteroidIndex];
+          if (this.isBoundingOverlap(headBounds, asteroid.getBounds()) === true) {
+            this.asteroidManager.asteroids.splice(asteroidIndex, 1);
+            hitAsteroid = true;
+            clearedThisFrame += 1;
+            this.destroyedCount += 1;
+            this.addScore(90, 'destroyed');
+            this.explosions.push(new Explosion(asteroid.positionX, asteroid.positionY, { kind: 'meteor', maxRadius: 70, ringAlpha: 0.4 }));
+            break;
+          }
+        }
+      }
+
+      if (hitAsteroid === true) {
+        continue;
+      }
+      if (stormStar.isExpired() === true) {
+        continue;
+      }
+      if (stormStar.isOffScreen(this.canvas.width, this.canvas.height) === true) {
+        continue;
+      }
+      remainingStars.push(stormStar);
+    }
+
+    this.stormShootingStars = remainingStars;
+  }
+
   // Updates foreground shooting star hazards.
   updateHazardShootingStars(deltaSeconds) {
     this.hazardShootingStarSpawnTimer += deltaSeconds;
@@ -1271,6 +1418,65 @@ export class Game {
     this.updateHud();
   }
 
+  // Updates the friendly wingman alien and auto-fires at nearby hazards.
+  updateAllyAlien(deltaSeconds) {
+    if (this.allyAlienTimer <= 0) {
+      this.allyAlien = null;
+      return;
+    }
+
+    if (this.allyAlien === null || this.allyAlien === undefined) {
+      this.allyAlien = new AllyAlien(this.canvas.width, this.canvas.height, this.allyAlienSprite);
+    }
+
+    // Aim at the nearest hazard ahead; fallback to the player's lane.
+    let desiredTargetY = this.player.positionY;
+    const maxScanDistance = this.canvas.width * 0.9;
+    let bestDistanceX = Number.POSITIVE_INFINITY;
+
+    for (const asteroid of this.asteroidManager.asteroids) {
+      const distanceX = asteroid.positionX - this.allyAlien.positionX;
+      if (distanceX <= 0) {
+        continue;
+      }
+      if (distanceX > maxScanDistance) {
+        continue;
+      }
+      if (distanceX < bestDistanceX) {
+        bestDistanceX = distanceX;
+        desiredTargetY = asteroid.positionY;
+      }
+    }
+
+    for (const alien of this.alienManager.aliens) {
+      const distanceX = alien.positionX - this.allyAlien.positionX;
+      if (distanceX <= 0) {
+        continue;
+      }
+      if (distanceX > maxScanDistance) {
+        continue;
+      }
+      if (distanceX < bestDistanceX) {
+        bestDistanceX = distanceX;
+        desiredTargetY = alien.positionY;
+      }
+    }
+
+    this.allyAlien.update(deltaSeconds, this.player, desiredTargetY);
+
+    const alignmentThreshold = 28;
+    const alignmentDelta = Math.abs(this.allyAlien.positionY - desiredTargetY);
+    if (alignmentDelta > alignmentThreshold) {
+      return;
+    }
+
+    const firedBullet = this.allyAlien.tryFire();
+    if (firedBullet === null) {
+      return;
+    }
+    this.bullets.push(firedBullet);
+  }
+
   // Splits asteroids into smaller fragments at random moments (before mid-screen) while splitter is active.
   applyAsteroidSplitter(deltaSeconds) {
     if (this.asteroidSplitterTimer <= 0) {
@@ -1496,6 +1702,7 @@ export class Game {
     this.powerUpManager.draw(this.context);
     this.asteroidManager.draw(this.context);
     this.alienManager.draw(this.context);
+    this.drawAllyAlien();
     this.drawBullets();
     this.drawMissiles();
     const flashIntensity = Math.max(this.hitFlashSeconds / 0.3, 0);
@@ -1503,6 +1710,7 @@ export class Game {
     const powerupRatios = this.getPowerupRatios();
     this.player.draw(this.context, isCloaked, flashIntensity, powerupRatios);
     this.drawOrbitalLaser();
+    this.drawShootingStarStorm();
     this.drawHazardShootingStars();
     this.drawExplosions();
     this.drawForceFieldPulse();
@@ -1539,6 +1747,24 @@ export class Game {
     }
   }
 
+  // Draws the ally alien wingman when the powerup is active.
+  drawAllyAlien() {
+    if (this.allyAlien === null || this.allyAlien === undefined) {
+      return;
+    }
+    this.allyAlien.draw(this.context);
+  }
+
+  // Draws friendly shooting stars used by the Star Storm powerup.
+  drawShootingStarStorm() {
+    if (this.stormShootingStars.length === 0) {
+      return;
+    }
+    for (const stormStar of this.stormShootingStars) {
+      stormStar.draw(this.context);
+    }
+  }
+
   // Renders rare foreground shooting star hazards.
   drawHazardShootingStars() {
     for (const shootingStar of this.hazardShootingStars) {
@@ -1561,6 +1787,7 @@ export class Game {
     let offsetX = this.canvas.width - padding;
     const scoreY = padding + iconSize * 0.5;
     const livesY = scoreY + 22;
+    const timeY = livesY + 22;
 
     if (this.scoreIcon !== undefined && this.scoreIcon.complete === true) {
       this.context.drawImage(this.scoreIcon, offsetX - iconSize, scoreY - iconSize * 0.5, iconSize, iconSize);
@@ -1579,11 +1806,107 @@ export class Game {
       this.context.fillText(livesDisplay, offsetX - iconSize - 6, livesY + 5);
     }
 
+    // Timer (time survived).
+    const totalSeconds = Math.max(0, Math.floor(this.timeElapsedSeconds));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const secondsDisplay = String(seconds).padStart(2, '0');
+    const timeDisplay = `${minutes}:${secondsDisplay}`;
+    const clockCenterX = offsetX - iconSize * 0.5;
+    const clockCenterY = timeY;
+    this.context.save();
+    this.context.globalAlpha = 0.85;
+    this.context.strokeStyle = 'rgba(255,255,255,0.85)';
+    this.context.lineWidth = 2;
+    this.context.beginPath();
+    this.context.arc(clockCenterX, clockCenterY, iconSize * 0.35, 0, Math.PI * 2);
+    this.context.stroke();
+    this.context.beginPath();
+    this.context.moveTo(clockCenterX, clockCenterY);
+    this.context.lineTo(clockCenterX, clockCenterY - iconSize * 0.18);
+    this.context.stroke();
+    this.context.beginPath();
+    this.context.moveTo(clockCenterX, clockCenterY);
+    this.context.lineTo(clockCenterX + iconSize * 0.14, clockCenterY + iconSize * 0.06);
+    this.context.stroke();
+    this.context.restore();
+
+    this.context.fillStyle = 'rgba(255,255,255,0.9)';
+    this.context.font = '16px Inter, system-ui';
+    this.context.textAlign = 'right';
+    this.context.fillText(timeDisplay, offsetX - iconSize - 6, timeY + 5);
+
+    // Active powerups (icons only).
+    const activePowerups = [
+      { key: 'cloak', seconds: this.cloakTimer },
+      { key: 'blaster', seconds: this.blasterTimer },
+      { key: 'slow', seconds: this.slowTimer },
+      { key: 'allyAlien', seconds: this.allyAlienTimer },
+      { key: 'shootingStarStorm', seconds: this.shootingStarStormTimer },
+      { key: 'forceField', seconds: this.forceFieldTimer },
+      { key: 'orbitalLaser', seconds: this.orbitalLaserTimer },
+      { key: 'seekerMissiles', seconds: this.seekerMissilesTimer },
+      { key: 'missileBarrage', seconds: this.missileBarrageTimer },
+      { key: 'multiplier', seconds: this.multiplierTimer },
+      { key: 'blackHole', seconds: this.blackHoleTimer },
+      { key: 'solarFlare', seconds: this.solarFlareTimer },
+      { key: 'wave', seconds: this.waveTimer },
+      { key: 'asteroidSplitter', seconds: this.asteroidSplitterTimer },
+      { key: 'spaceDust', seconds: this.spaceDustTimer }
+    ].filter((entry) => entry.seconds > 0);
+
+    const iconMap = this.powerUpManager?.iconMap;
+    const powerupIconSize = 16;
+    const powerupCellSize = 22;
+    const powerupGap = 6;
+    const iconsPerRow = 5;
+    const powerupStartY = timeY + 22;
+
+    let drawnPowerupCount = 0;
+    for (const entry of activePowerups) {
+      const icon = iconMap?.[entry.key];
+      if (icon === undefined || icon === null || icon.complete !== true) {
+        continue;
+      }
+
+      const rowIndex = Math.floor(drawnPowerupCount / iconsPerRow);
+      const colIndex = drawnPowerupCount % iconsPerRow;
+      const cellRightX = offsetX - colIndex * (powerupCellSize + powerupGap);
+      const cellX = cellRightX - powerupCellSize;
+      const cellY = powerupStartY + rowIndex * (powerupCellSize + powerupGap);
+
+      this.context.save();
+      this.context.globalAlpha = 0.75;
+      this.context.fillStyle = 'rgba(8, 12, 26, 0.65)';
+      this.context.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      this.context.lineWidth = 1;
+      this.context.beginPath();
+      this.context.roundRect(cellX, cellY, powerupCellSize, powerupCellSize, 6);
+      this.context.fill();
+      this.context.stroke();
+      this.context.globalAlpha = 1;
+      this.context.drawImage(
+        icon,
+        cellX + (powerupCellSize - powerupIconSize) * 0.5,
+        cellY + (powerupCellSize - powerupIconSize) * 0.5,
+        powerupIconSize,
+        powerupIconSize
+      );
+      this.context.restore();
+
+      drawnPowerupCount += 1;
+      if (drawnPowerupCount >= 10) {
+        break;
+      }
+    }
+
     if (this.testModeEnabled === true) {
       this.context.fillStyle = '#fbbf24';
       this.context.font = '12px Inter, system-ui';
       this.context.textAlign = 'right';
-      this.context.fillText('TEST MODE', this.canvas.width - padding, livesY + 22);
+      const rowsUsed = Math.max(1, Math.ceil(drawnPowerupCount / iconsPerRow));
+      const labelY = drawnPowerupCount > 0 ? (powerupStartY + rowsUsed * (powerupCellSize + powerupGap) + 6) : (timeY + 22);
+      this.context.fillText('TEST MODE', this.canvas.width - padding, labelY);
     }
     this.context.restore();
   }
@@ -1697,16 +2020,17 @@ export class Game {
     const width = this.canvas.width;
     const height = this.canvas.height;
 
-    // Cloak: faint shimmer sweep.
+    // Explosive barrier: warm charge bloom near the player.
     if (this.cloakTimer > 0) {
       const ratio = this.durationLookup.cloak > 0 ? this.cloakTimer / this.durationLookup.cloak : 1;
-      const intensity = 0.12 + 0.10 * Math.max(0, Math.min(1, ratio));
-      const time = this.timeElapsedSeconds;
-      const sweepCenter = (time * 220) % (width + 240) - 120;
-      const shimmer = this.context.createLinearGradient(sweepCenter - 140, 0, sweepCenter + 140, 0);
-      shimmer.addColorStop(0, 'rgba(106, 199, 255, 0)');
-      shimmer.addColorStop(0.5, `rgba(106, 199, 255, ${intensity})`);
-      shimmer.addColorStop(1, 'rgba(106, 199, 255, 0)');
+      const intensity = 0.1 + 0.14 * Math.max(0, Math.min(1, ratio));
+      const playerX = this.player.positionX + this.cameraOffsetX;
+      const playerY = this.player.positionY + this.cameraOffsetY;
+      const radius = Math.max(width, height) * 0.42;
+      const shimmer = this.context.createRadialGradient(playerX, playerY, radius * 0.1, playerX, playerY, radius);
+      shimmer.addColorStop(0, `rgba(255, 179, 71, ${intensity})`);
+      shimmer.addColorStop(0.55, `rgba(255, 107, 107, ${intensity * 0.55})`);
+      shimmer.addColorStop(1, 'rgba(255, 107, 107, 0)');
       this.context.save();
       this.context.globalCompositeOperation = 'screen';
       this.context.fillStyle = shimmer;
@@ -1812,7 +2136,8 @@ export class Game {
 
   // Handles collisions between the player and any asteroid.
   detectPlayerAsteroidCollision() {
-    if (this.invulnerabilitySeconds > 0) {
+    const barrierActive = this.cloakTimer > 0;
+    if (this.invulnerabilitySeconds > 0 && barrierActive !== true) {
       return;
     }
 
@@ -1821,8 +2146,8 @@ export class Game {
       const asteroidBounds = asteroid.getBounds();
       const isOverlapping = this.isBoundingOverlap(playerBounds, asteroidBounds);
       if (isOverlapping === true) {
-        if (this.cloakTimer > 0) {
-          this.handlePhasedAsteroid(asteroid);
+        if (barrierActive === true) {
+          this.handleBarrierAsteroidDetonation(asteroid);
         } else {
           this.handleHit();
         }
@@ -1833,15 +2158,18 @@ export class Game {
 
   // Handles collisions with alien hulls.
   detectPlayerAlienCollision() {
-    if (this.invulnerabilitySeconds > 0) {
-      return;
-    }
-    if (this.cloakTimer > 0) {
+    const barrierActive = this.cloakTimer > 0;
+    if (this.invulnerabilitySeconds > 0 && barrierActive !== true) {
       return;
     }
     const playerBounds = this.player.getBounds();
-    for (const alien of this.alienManager.aliens) {
+    for (let alienIndex = this.alienManager.aliens.length - 1; alienIndex >= 0; alienIndex -= 1) {
+      const alien = this.alienManager.aliens[alienIndex];
       if (this.isBoundingOverlap(playerBounds, alien.getBounds()) === true) {
+        if (barrierActive === true) {
+          this.handleBarrierAlienDetonation(alien);
+          return;
+        }
         this.handleHit();
         return;
       }
@@ -1850,15 +2178,25 @@ export class Game {
 
   // Handles collisions with lasers.
   detectPlayerLaserCollision() {
-    if (this.invulnerabilitySeconds > 0) {
-      return;
-    }
-    if (this.cloakTimer > 0) {
+    const barrierActive = this.cloakTimer > 0;
+    if (this.invulnerabilitySeconds > 0 && barrierActive !== true) {
       return;
     }
     const playerBounds = this.player.getBounds();
-    for (const laser of this.alienManager.lasers) {
+    const maxLaserClearsPerFrame = 3;
+    let clearedLasers = 0;
+    for (let laserIndex = this.alienManager.lasers.length - 1; laserIndex >= 0; laserIndex -= 1) {
+      const laser = this.alienManager.lasers[laserIndex];
       if (this.isBoundingOverlap(playerBounds, laser.getBounds()) === true) {
+        if (barrierActive === true) {
+          this.alienManager.lasers.splice(laserIndex, 1);
+          this.handleBarrierLaserDetonation(laser);
+          clearedLasers += 1;
+          if (clearedLasers >= maxLaserClearsPerFrame) {
+            return;
+          }
+          continue;
+        }
         this.handleHit();
         return;
       }
@@ -1867,7 +2205,8 @@ export class Game {
 
   // Handles collisions with rare foreground shooting star hazards.
   detectPlayerHazardShootingStarCollision() {
-    if (this.invulnerabilitySeconds > 0) {
+    const barrierActive = this.cloakTimer > 0;
+    if (this.invulnerabilitySeconds > 0 && barrierActive !== true) {
       return;
     }
     if (this.hazardShootingStars.length === 0) {
@@ -1893,6 +2232,10 @@ export class Game {
       const headRadius = shootingStar.getHeadRadius();
       if (distance <= playerRadius + headRadius) {
         this.hazardShootingStars.splice(index, 1);
+        if (barrierActive === true) {
+          this.handleBarrierHazardShootingStarDetonation(shootingStar);
+          return;
+        }
         this.explosions.push(new Explosion(shootingStar.positionX, shootingStar.positionY, { kind: 'meteor' }));
         this.startCameraShake(14, 0.35);
         this.handleHit();
@@ -1901,15 +2244,85 @@ export class Game {
     }
   }
 
-  // Handles a cloaked overlap for scoring and removal.
-  handlePhasedAsteroid(asteroid) {
+  // Handles an explosive barrier detonation against an asteroid (scores as "barrier" points).
+  handleBarrierAsteroidDetonation(asteroid) {
     this.phasedCount += 1;
     this.addScore(60, 'phased');
     const asteroidIndex = this.asteroidManager.asteroids.indexOf(asteroid);
     if (asteroidIndex >= 0) {
       this.asteroidManager.asteroids.splice(asteroidIndex, 1);
     }
-    this.explosions.push(new Explosion(asteroid.positionX, asteroid.positionY));
+    this.explosions.push(
+      new Explosion(asteroid.positionX, asteroid.positionY, {
+        maxRadius: 68,
+        lifeSeconds: 0.46,
+        ringAlpha: 0.45,
+        ringLineWidth: 4,
+        coreColor: 'rgba(255, 255, 255, 0.95)',
+        edgeColor: 'rgba(255, 107, 107, 0)',
+        ringColor: 'rgba(255, 246, 214, 0.9)'
+      })
+    );
+    this.startCameraShake(10, 0.22);
+    this.updateHud();
+  }
+
+  // Handles an explosive barrier detonation against an alien (scores as "barrier" points).
+  handleBarrierAlienDetonation(alien) {
+    this.phasedCount += 1;
+    this.addScore(80, 'phased');
+
+    const alienIndex = this.alienManager.aliens.indexOf(alien);
+    if (alienIndex >= 0) {
+      this.alienManager.aliens.splice(alienIndex, 1);
+    }
+
+    if (this.alienManager.lasers.length > 0) {
+      this.alienManager.lasers = this.alienManager.lasers.filter((laser) => laser.owner !== alien);
+    }
+
+    this.explosions.push(
+      new Explosion(alien.positionX, alien.positionY, {
+        maxRadius: 74,
+        lifeSeconds: 0.5,
+        ringAlpha: 0.5,
+        ringLineWidth: 4,
+        coreColor: 'rgba(255, 255, 255, 0.95)',
+        edgeColor: 'rgba(255, 107, 107, 0)',
+        ringColor: 'rgba(255, 179, 71, 0.9)'
+      })
+    );
+    this.startCameraShake(12, 0.25);
+    this.updateHud();
+  }
+
+  // Removes an alien laser when it hits the explosive barrier (visual only; no score).
+  handleBarrierLaserDetonation(laser) {
+    this.explosions.push(
+      new Explosion(laser.positionX, laser.positionY, {
+        maxRadius: 46,
+        lifeSeconds: 0.35,
+        ringAlpha: 0.35,
+        ringLineWidth: 3,
+        coreColor: 'rgba(255, 255, 255, 0.9)',
+        edgeColor: 'rgba(255, 107, 107, 0)',
+        ringColor: 'rgba(255, 246, 214, 0.85)'
+      })
+    );
+  }
+
+  // Destroys a hazard shooting star that hits the explosive barrier (visual + barrier score).
+  handleBarrierHazardShootingStarDetonation(shootingStar) {
+    this.phasedCount += 1;
+    this.addScore(70, 'phased');
+    this.explosions.push(
+      new Explosion(shootingStar.positionX, shootingStar.positionY, {
+        kind: 'meteor',
+        maxRadius: 90,
+        ringAlpha: 0.55
+      })
+    );
+    this.startCameraShake(14, 0.3);
     this.updateHud();
   }
 
@@ -1944,7 +2357,27 @@ export class Game {
     if (powerUp.type === 'cloak') {
       this.cloakTimer = powerUp.config.durationSeconds;
       this.durationLookup.cloak = powerUp.config.durationSeconds;
-      this.updateStatus('Cloak active. Fly through asteroids.');
+      this.updateStatus('Explosive barrier online! Touch hazards to detonate them.');
+      this.updateHud();
+      return;
+    }
+
+    if (powerUp.type === 'allyAlien') {
+      this.allyAlienTimer = powerUp.config.durationSeconds;
+      this.durationLookup.allyAlien = powerUp.config.durationSeconds;
+      if (this.allyAlien === null || this.allyAlien === undefined) {
+        this.allyAlien = new AllyAlien(this.canvas.width, this.canvas.height, this.allyAlienSprite);
+      }
+      this.updateStatus('Wingman inbound. Friendly fire online!');
+      this.updateHud();
+      return;
+    }
+
+    if (powerUp.type === 'shootingStarStorm') {
+      this.shootingStarStormTimer = powerUp.config.durationSeconds;
+      this.durationLookup.shootingStarStorm = powerUp.config.durationSeconds;
+      this.stormShootingStarSpawnCooldownSeconds = 0;
+      this.updateStatus('Star storm incoming. Asteroids will get shredded.');
       this.updateHud();
       return;
     }
@@ -2127,6 +2560,8 @@ export class Game {
       cloak: this.durationLookup.cloak > 0 ? this.cloakTimer / this.durationLookup.cloak : 0,
       blaster: this.durationLookup.blaster > 0 ? this.blasterTimer / this.durationLookup.blaster : 0,
       slow: this.durationLookup.slow > 0 ? this.slowTimer / this.durationLookup.slow : 0,
+      allyAlien: this.durationLookup.allyAlien > 0 ? this.allyAlienTimer / this.durationLookup.allyAlien : 0,
+      shootingStarStorm: this.durationLookup.shootingStarStorm > 0 ? this.shootingStarStormTimer / this.durationLookup.shootingStarStorm : 0,
       forceField: this.durationLookup.forceField > 0 ? this.forceFieldTimer / this.durationLookup.forceField : 0,
       orbitalLaser: this.durationLookup.orbitalLaser > 0 ? this.orbitalLaserTimer / this.durationLookup.orbitalLaser : 0,
       seekerMissiles: this.durationLookup.seekerMissiles > 0 ? this.seekerMissilesTimer / this.durationLookup.seekerMissiles : 0,
@@ -2155,7 +2590,7 @@ export class Game {
     }
     if (this.summaryFields.phasedScore !== undefined) {
       const phasedScore = Math.floor(this.scoreBreakdown.phased).toLocaleString();
-      this.summaryFields.phasedScore.textContent = `${phasedScore} · ${this.phasedCount} phased`;
+      this.summaryFields.phasedScore.textContent = `${phasedScore} · ${this.phasedCount} detonations`;
     }
     if (this.summaryFields.miscScore !== undefined) {
       this.summaryFields.miscScore.textContent = Math.floor(this.scoreBreakdown.misc).toLocaleString();
