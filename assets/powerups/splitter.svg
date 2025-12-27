@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <g transform="translate(6 6)" stroke-linejoin="round" stroke-linecap="round">
+    <!-- vertical detonation line -->
+    <path d="M34 4 V52" stroke="#67f4c1" stroke-width="4" opacity="0.95"/>
+    <path d="M34 4 V52" stroke="#ffffff" stroke-width="2" opacity="0.25"/>
+
+    <!-- incoming asteroid -->
+    <circle cx="20" cy="24" r="9" fill="#0f1735" stroke="#93c5fd" stroke-width="3"/>
+    <path d="M16 22 C18 18 24 18 26 22" stroke="#93c5fd" stroke-width="2" opacity="0.6"/>
+
+    <!-- explosion sparks -->
+    <g stroke="#ffb347" stroke-width="3" opacity="0.9">
+      <path d="M36 18 L42 12"/>
+      <path d="M36 30 L44 30"/>
+      <path d="M36 40 L42 46"/>
+    </g>
+
+    <!-- fragments -->
+    <circle cx="48" cy="18" r="4.2" fill="#0f1735" stroke="#67f4c1" stroke-width="2.5"/>
+    <circle cx="48" cy="34" r="5" fill="#0f1735" stroke="#67f4c1" stroke-width="2.5"/>
+    <circle cx="46" cy="46" r="3.6" fill="#0f1735" stroke="#67f4c1" stroke-width="2.5"/>
+  </g>
+</svg>
+
+

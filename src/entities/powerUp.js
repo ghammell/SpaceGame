@@ -6,6 +6,8 @@ const powerUpConfigs = {
   blaster: { color: '#ffde59', label: 'B', durationSeconds: 9 },
   slow: { color: '#b39cff', label: 'S', durationSeconds: 7 },
   forceField: { color: '#60a5fa', label: 'F', durationSeconds: 8 },
+  missileBarrage: { color: '#93c5fd', label: 'MB', durationSeconds: 6 },
+  asteroidSplitter: { color: '#67f4c1', label: 'AS', durationSeconds: 8, isNegative: true },
   spaceDust: { color: '#fbbf24', label: 'D', durationSeconds: 6, isNegative: true },
   multiplier: { color: '#ff9f45', label: 'Mx', durationSeconds: 10 },
   blackHole: { color: '#3f2e5c', label: 'BH', durationSeconds: 7, isNegative: true },
@@ -113,24 +115,44 @@ export function getRandomPowerUpType() {
   }
   const roll = Math.random();
   if (roll < 0.5) {
+    // Positive pool: original weighted distribution + missile barrage.
+    // - missileBarrage: 10% of positives
+    //
+    // Approx overall odds (normal play):
+    // - missileBarrage: 50% * 10% = ~5% (about 1 in 20 powerups)
     const positiveWeight = Math.random();
-    if (positiveWeight < 0.28) return 'extraLife';
-    if (positiveWeight < 0.5) return 'cloak';
-    if (positiveWeight < 0.68) return 'blaster';
-    if (positiveWeight < 0.82) return 'slow';
-    if (positiveWeight < 0.92) return 'forceField';
-    return 'multiplier';
+    const missileShare = 0.10;
+    const remainingShare = 1 - missileShare;
+
+    const extraLifeCutoff = 0.28 * remainingShare;
+    const cloakCutoff = (0.28 + 0.22) * remainingShare;
+    const blasterCutoff = (0.28 + 0.22 + 0.18) * remainingShare;
+    const slowCutoff = (0.28 + 0.22 + 0.18 + 0.14) * remainingShare;
+    const forceFieldCutoff = (0.28 + 0.22 + 0.18 + 0.14 + 0.10) * remainingShare;
+    const multiplierCutoff = remainingShare;
+
+    if (positiveWeight < extraLifeCutoff) return 'extraLife';
+    if (positiveWeight < cloakCutoff) return 'cloak';
+    if (positiveWeight < blasterCutoff) return 'blaster';
+    if (positiveWeight < slowCutoff) return 'slow';
+    if (positiveWeight < forceFieldCutoff) return 'forceField';
+    if (positiveWeight < multiplierCutoff) return 'multiplier';
+    return 'missileBarrage';
   }
+  // Negative pool: original weighted distribution + asteroid splitter.
+  // - asteroidSplitter: 8% of negatives (~4% overall)
   const negativeWeight = Math.random();
-  if (negativeWeight < 0.35) {
-    return 'blackHole';
-  }
-  if (negativeWeight < 0.6) {
-    return 'solarFlare';
-  }
-  if (negativeWeight < 0.82) {
-    return 'wave';
-  }
-  return 'spaceDust';
+  const splitterShare = 0.08;
+  const remainingShare = 1 - splitterShare;
+  const blackHoleCutoff = 0.35 * remainingShare;
+  const solarFlareCutoff = (0.35 + 0.25) * remainingShare;
+  const waveCutoff = (0.35 + 0.25 + 0.22) * remainingShare;
+  const spaceDustCutoff = remainingShare;
+
+  if (negativeWeight < blackHoleCutoff) return 'blackHole';
+  if (negativeWeight < solarFlareCutoff) return 'solarFlare';
+  if (negativeWeight < waveCutoff) return 'wave';
+  if (negativeWeight < spaceDustCutoff) return 'spaceDust';
+  return 'asteroidSplitter';
 }
 

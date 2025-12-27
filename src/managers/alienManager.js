@@ -1,4 +1,4 @@
-import { Alien, Laser } from '../entities/alien.js';
+import { Alien } from '../entities/alien.js';
 
 // Manages alien spawns and their lasers.
 export class AlienManager {
@@ -22,6 +22,11 @@ export class AlienManager {
   setCanvasSize(canvasWidth, canvasHeight) {
     this.canvasWidth = canvasWidth;
     this.canvasHeight = canvasHeight;
+    for (const alien of this.aliens) {
+      if (typeof alien.setCanvasSize === 'function') {
+        alien.setCanvasSize(canvasWidth, canvasHeight);
+      }
+    }
   }
 
   // Clears all state.
@@ -39,7 +44,7 @@ export class AlienManager {
   }
 
   // Advances aliens and lasers, spawning when needed.
-  update(deltaSeconds, speedScale = 1) {
+  update(deltaSeconds, speedScale = 1, player) {
     this.spawnTimer += deltaSeconds;
     if (this.spawnTimer >= this.nextSpawnDelay && this.aliens.length < 2) {
       this.spawnAlien();
@@ -48,7 +53,7 @@ export class AlienManager {
     }
 
     for (const alien of this.aliens) {
-      alien.update(deltaSeconds, speedScale);
+      alien.update(deltaSeconds, speedScale, player);
       const firedLaser = alien.tryFire();
       if (firedLaser !== null) {
         this.lasers.push(firedLaser);
@@ -66,8 +71,21 @@ export class AlienManager {
   // Creates and stores an alien.
   spawnAlien() {
     const alienSprite = this.getRandomAlienSprite();
-    const alien = new Alien(this.canvasWidth, this.canvasHeight, alienSprite);
+    const behavior = this.getRandomAlienBehavior();
+    const alien = new Alien(this.canvasWidth, this.canvasHeight, alienSprite, behavior);
     this.aliens.push(alien);
+  }
+
+  // Chooses a random alien behavior variant.
+  getRandomAlienBehavior() {
+    const roll = Math.random();
+    if (roll < 0.6) {
+      return 'standard';
+    }
+    if (roll < 0.82) {
+      return 'tailLaser';
+    }
+    return 'tracker';
   }
 
   // Chooses a random sprite from the available alien variants.
@@ -81,11 +99,11 @@ export class AlienManager {
 
   // Draws all aliens and lasers.
   draw(drawingContext) {
-    for (const alien of this.aliens) {
-      alien.draw(drawingContext);
-    }
     for (const laser of this.lasers) {
       laser.draw(drawingContext);
+    }
+    for (const alien of this.aliens) {
+      alien.draw(drawingContext);
     }
   }
 }

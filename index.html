@@ -48,6 +48,8 @@
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/blaster.svg" alt="Blaster" /><div>Blaster</div><span>Unlimited shots while active</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/slow.svg" alt="Slow" /><div>Slow</div><span>Hazards move slower</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/forcefield.svg" alt="Force field" /><div>Force Field</div><span>Pulses clear nearby asteroids</span></div>
+          <div class="power-tile"><img class="summary-icon" src="./assets/powerups/missiles.svg" alt="Missile barrage" /><div>Missile Barrage</div><span>Delayed missiles clear asteroids + aliens</span></div>
+          <div class="power-tile"><img class="summary-icon" src="./assets/powerups/splitter.svg" alt="Asteroid splitter" /><div>Asteroid Splitter</div><span>Asteroids shatter into smaller ones, bonus points</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/spacedust.svg" alt="Space dust" /><div>Space Dust</div><span>Obscures vision</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/multiplier.svg" alt="Multiplier" /><div>Multiplier</div><span>Score x2</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/blackhole.svg" alt="Black hole" /><div>Black Hole</div><span>Faster hazards, bonus points</span></div>
@@ -116,16 +118,18 @@
         <div class="testmode-section">
           <div class="summary-title small">Allowed powerups</div>
           <div class="testmode-grid">
-            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="extraLife" /> Extra Life <span class="testmode-desc">Gain one life</span></label>
-            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="cloak" /> Cloak <span class="testmode-desc">Phase through asteroids</span></label>
-            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="blaster" /> Blaster <span class="testmode-desc">Fire while active</span></label>
-            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="slow" /> Slow <span class="testmode-desc">Hazards move slower</span></label>
-            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="forceField" /> Force Field <span class="testmode-desc">Pulses clear nearby asteroids</span></label>
-            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="spaceDust" /> Space Dust <span class="testmode-desc">Vision obscured briefly</span></label>
-            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="multiplier" /> Multiplier <span class="testmode-desc">Score x2</span></label>
-            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="blackHole" /> Black Hole <span class="testmode-desc">Faster hazards</span></label>
-            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="solarFlare" /> Solar Flare <span class="testmode-desc">Larger hazards</span></label>
-            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="wave" /> Wave <span class="testmode-desc">Bobbing hazards</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="extraLife" /> <img class="testmode-icon" src="./assets/powerups/heart_plus.svg" alt="" aria-hidden="true" /> Extra Life <span class="testmode-desc">Gain one life</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="cloak" /> <img class="testmode-icon" src="./assets/powerups/cloak.svg" alt="" aria-hidden="true" /> Cloak <span class="testmode-desc">Phase through asteroids</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="blaster" /> <img class="testmode-icon" src="./assets/powerups/blaster.svg" alt="" aria-hidden="true" /> Blaster <span class="testmode-desc">Fire while active</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="slow" /> <img class="testmode-icon" src="./assets/powerups/slow.svg" alt="" aria-hidden="true" /> Slow <span class="testmode-desc">Hazards move slower</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="forceField" /> <img class="testmode-icon" src="./assets/powerups/forcefield.svg" alt="" aria-hidden="true" /> Force Field <span class="testmode-desc">Pulses clear nearby asteroids</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="missileBarrage" /> <img class="testmode-icon" src="./assets/powerups/missiles.svg" alt="" aria-hidden="true" /> Missile Barrage <span class="testmode-desc">Delayed missiles clear asteroids + aliens</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="asteroidSplitter" /> <img class="testmode-icon" src="./assets/powerups/splitter.svg" alt="" aria-hidden="true" /> Asteroid Splitter <span class="testmode-desc">Asteroids shatter into smaller ones</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="spaceDust" /> <img class="testmode-icon" src="./assets/powerups/spacedust.svg" alt="" aria-hidden="true" /> Space Dust <span class="testmode-desc">Vision obscured briefly</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="multiplier" /> <img class="testmode-icon" src="./assets/powerups/multiplier.svg" alt="" aria-hidden="true" /> Multiplier <span class="testmode-desc">Score x2</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="blackHole" /> <img class="testmode-icon" src="./assets/powerups/blackhole.svg" alt="" aria-hidden="true" /> Black Hole <span class="testmode-desc">Faster hazards</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="solarFlare" /> <img class="testmode-icon" src="./assets/powerups/solarflare.svg" alt="" aria-hidden="true" /> Solar Flare <span class="testmode-desc">Larger hazards</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="wave" /> <img class="testmode-icon" src="./assets/powerups/wave.svg" alt="" aria-hidden="true" /> Wave <span class="testmode-desc">Bobbing hazards</span></label>
           </div>
           <div class="testmode-help">If no powerups are selected, all powerups are allowed while test mode is enabled.</div>
         </div>

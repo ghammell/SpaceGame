@@ -77,6 +77,8 @@ export async function loadPowerUpIcons() {
     ['blaster', '../../assets/powerups/blaster.svg'],
     ['slow', '../../assets/powerups/slow.svg'],
     ['forceField', '../../assets/powerups/forcefield.svg'],
+    ['missileBarrage', '../../assets/powerups/missiles.svg'],
+    ['asteroidSplitter', '../../assets/powerups/splitter.svg'],
     ['spaceDust', '../../assets/powerups/spacedust.svg'],
     ['multiplier', '../../assets/powerups/multiplier.svg'],
     ['blackHole', '../../assets/powerups/blackhole.svg'],

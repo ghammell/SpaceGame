@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <g transform="translate(6 12)" stroke-linejoin="round" stroke-linecap="round">
+    <!-- back missile -->
+    <g opacity="0.55" transform="translate(0 10)">
+      <path d="M10 14 h18 a6 6 0 0 1 6 6 v0 a6 6 0 0 1 -6 6 H10 a6 6 0 0 1 -6 -6 v0 a6 6 0 0 1 6 -6 Z"
+            fill="#e6f0ff" stroke="#60a5fa" stroke-width="2"/>
+      <path d="M34 20 L44 15 L44 25 Z" fill="#93c5fd" stroke="#60a5fa" stroke-width="2"/>
+      <path d="M18 14 L12 8 L14 16 Z" fill="#60a5fa"/>
+      <path d="M18 26 L12 32 L14 24 Z" fill="#60a5fa"/>
+      <ellipse cx="6" cy="20" rx="6" ry="3.5" fill="#67f4c1" opacity="0.85"/>
+    </g>
+
+    <!-- front missile -->
+    <g transform="translate(2 0)">
+      <path d="M12 14 h20 a7 7 0 0 1 7 7 v0 a7 7 0 0 1 -7 7 H12 a7 7 0 0 1 -7 -7 v0 a7 7 0 0 1 7 -7 Z"
+            fill="#e6f0ff" stroke="#60a5fa" stroke-width="2.4"/>
+      <path d="M39 21 L51 15 L51 27 Z" fill="#93c5fd" stroke="#60a5fa" stroke-width="2.4"/>
+      <path d="M22 14 L15 7 L18 16 Z" fill="#60a5fa"/>
+      <path d="M22 28 L15 35 L18 26 Z" fill="#60a5fa"/>
+
+      <!-- window dot -->
+      <circle cx="22" cy="21" r="3" fill="#0b1024" opacity="0.35"/>
+
+      <!-- exhaust -->
+      <ellipse cx="6" cy="21" rx="7" ry="4" fill="#67f4c1" opacity="0.9"/>
+      <ellipse cx="4" cy="21" rx="9" ry="6" fill="#93c5fd" opacity="0.25"/>
+    </g>
+  </g>
+</svg>
+
+

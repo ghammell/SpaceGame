@@ -5,6 +5,9 @@ import { AlienManager } from '../managers/alienManager.js';
 import { Starfield } from '../effects/starfield.js';
 import { Explosion } from '../effects/explosion.js';
 import { Bullet } from '../entities/bullet.js';
+import { Missile } from '../entities/missile.js';
+import { HazardShootingStar } from '../entities/hazardShootingStar.js';
+import { Asteroid } from '../entities/asteroid.js';
 import { setTestModeConfig } from '../entities/powerUp.js';
 
 // Desktop canvas sizing: keep the on-screen playfield at this width (or smaller), but render at higher resolution
@@ -42,6 +45,10 @@ export class Game {
     this.isPaused = false;
     this.explosions = [];
     this.bullets = [];
+    this.missiles = [];
+    this.hazardShootingStars = [];
+    this.hazardShootingStarSpawnTimer = 0;
+    this.hazardShootingStarNextSpawnDelay = this.getNextHazardShootingStarSpawnDelay();
     this.isRunning = false;
     this.isGameOver = false;
     this.livesRemaining = 3;
@@ -57,13 +64,15 @@ export class Game {
     this.solarFlareTimer = 0;
     this.waveTimer = 0;
     this.waveSettings = { amplitude: 42, speed: 2.6 };
-    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, forceField: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
-    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, forceField: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, forceField: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, forceField: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
     this.forceFieldTimer = 0;
     this.forceFieldPulseCooldown = 0;
     this.forceFieldPulseActive = 0;
     this.forceFieldPulseDuration = 0.25;
     this.forceFieldRadius = 230;
+    this.missileBarrageTimer = 0;
+    this.asteroidSplitterTimer = 0;
     this.spaceDustTimer = 0;
     this.spaceDustIntensity = 0;
     this.spaceDustParticles = [];
@@ -219,11 +228,13 @@ export class Game {
     this.forceFieldTimer = 0;
     this.forceFieldPulseCooldown = 0;
     this.forceFieldPulseActive = 0;
+    this.missileBarrageTimer = 0;
+    this.asteroidSplitterTimer = 0;
     this.spaceDustTimer = 0;
     this.spaceDustIntensity = 0;
     this.spaceDustParticles = [];
-    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, forceField: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
-    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, forceField: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, forceField: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, forceField: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
     this.isCountdownActive = false;
     this.countdownRemaining = 0;
     this.resetFrameTimestampNextFrame = false;
@@ -245,6 +256,10 @@ export class Game {
     this.alienManager.reset();
     this.explosions = [];
     this.bullets = [];
+    this.missiles = [];
+    this.hazardShootingStars = [];
+    this.hazardShootingStarSpawnTimer = 0;
+    this.hazardShootingStarNextSpawnDelay = this.getNextHazardShootingStarSpawnDelay();
     this.hideSummary();
     this.updateHud();
     this.updateStatus('');
@@ -417,9 +432,12 @@ export class Game {
       this.handleBoundaryHit();
     }
     this.asteroidManager.update(deltaSeconds, asteroidSpeedScale, hazardSizeScale, waveSettings);
+    this.applyAsteroidSplitter();
     this.powerUpManager.update(deltaSeconds);
-    this.alienManager.update(deltaSeconds, asteroidSpeedScale);
+    this.alienManager.update(deltaSeconds, asteroidSpeedScale, this.player);
     this.updateBullets(deltaSeconds);
+    this.updateMissiles(deltaSeconds);
+    this.updateHazardShootingStars(deltaSeconds);
     this.updateExplosions(deltaSeconds);
     this.updateSpaceDust(deltaSeconds);
     this.updateForceField(deltaSeconds);
@@ -432,8 +450,10 @@ export class Game {
     const prevSolarFlare = this.solarFlareTimer;
     const prevWave = this.waveTimer;
     const prevMultiplier = this.multiplierTimer;
+    const prevMissileBarrage = this.missileBarrageTimer;
+    const prevAsteroidSplitter = this.asteroidSplitterTimer;
     this.timeElapsedSeconds += deltaSeconds;
-    const negativeActive = this.blackHoleTimer > 0 || this.solarFlareTimer > 0 || this.waveTimer > 0;
+    const negativeActive = this.blackHoleTimer > 0 || this.solarFlareTimer > 0 || this.waveTimer > 0 || this.asteroidSplitterTimer > 0;
     const timePoints = deltaSeconds * 5 * (negativeActive ? 2 : 1);
     this.addScore(timePoints, 'time');
     if (this.cloakTimer > 0) {
@@ -447,6 +467,12 @@ export class Game {
     }
     if (this.forceFieldTimer > 0) {
       this.powerupUptime.forceField += deltaSeconds;
+    }
+    if (this.missileBarrageTimer > 0) {
+      this.powerupUptime.missileBarrage += deltaSeconds;
+    }
+    if (this.asteroidSplitterTimer > 0) {
+      this.powerupUptime.asteroidSplitter += deltaSeconds;
     }
     if (this.spaceDustTimer > 0) {
       this.powerupUptime.spaceDust += deltaSeconds;
@@ -498,6 +524,20 @@ export class Game {
       this.forceFieldTimer -= deltaSeconds;
       if (this.forceFieldTimer < 0) {
         this.forceFieldTimer = 0;
+      }
+    }
+
+    if (this.missileBarrageTimer > 0) {
+      this.missileBarrageTimer -= deltaSeconds;
+      if (this.missileBarrageTimer < 0) {
+        this.missileBarrageTimer = 0;
+      }
+    }
+
+    if (this.asteroidSplitterTimer > 0) {
+      this.asteroidSplitterTimer -= deltaSeconds;
+      if (this.asteroidSplitterTimer < 0) {
+        this.asteroidSplitterTimer = 0;
       }
     }
 
@@ -561,6 +601,13 @@ export class Game {
     }
     if (prevMultiplier > 0 && this.multiplierTimer <= 0) {
       // no bonus for multiplier ending
+    }
+    if (prevMissileBarrage > 0 && this.missileBarrageTimer <= 0 && this.isGameOver === false) {
+      this.launchMissileBarrage();
+    }
+    if (prevAsteroidSplitter > 0 && this.asteroidSplitterTimer <= 0 && this.isGameOver === false) {
+      this.addScore(200, 'negative');
+      this.updateStatus('Asteroid splitter offline.');
     }
 
     if (this.fireCooldownSeconds > 0) {
@@ -724,6 +771,9 @@ export class Game {
             this.explosions.push(new Explosion(alien.positionX, alien.positionY));
             this.destroyedCount += 1;
             this.addScore(160, 'destroyed');
+            if (this.alienManager.lasers.length > 0) {
+              this.alienManager.lasers = this.alienManager.lasers.filter((laser) => laser.owner !== alien);
+            }
             break;
           }
         }
@@ -736,6 +786,159 @@ export class Game {
 
     this.bullets = remainingBullets;
     this.updateHud();
+  }
+
+  // Updates active homing missiles and resolves detonations.
+  updateMissiles(deltaSeconds) {
+    if (this.missiles.length === 0) {
+      return;
+    }
+
+    for (const missile of this.missiles) {
+      missile.update(deltaSeconds);
+    }
+
+    const remainingMissiles = [];
+    for (const missile of this.missiles) {
+      if (missile.isFinished() === true) {
+        this.resolveMissileDetonation(missile);
+      } else {
+        remainingMissiles.push(missile);
+      }
+    }
+    this.missiles = remainingMissiles;
+  }
+
+  // Resolves a missile detonation, attempting to destroy its target asteroid.
+  resolveMissileDetonation(missile) {
+    const target = missile.target;
+    if (target !== null && target !== undefined) {
+      const asteroidIndex = this.asteroidManager.asteroids.indexOf(target);
+      if (asteroidIndex >= 0) {
+        this.asteroidManager.asteroids.splice(asteroidIndex, 1);
+        this.destroyedCount += 1;
+        this.addScore(120, 'destroyed');
+        this.explosions.push(new Explosion(target.positionX, target.positionY));
+        return;
+      }
+
+      const alienIndex = this.alienManager.aliens.indexOf(target);
+      if (alienIndex >= 0) {
+        this.alienManager.aliens.splice(alienIndex, 1);
+        this.destroyedCount += 1;
+        this.addScore(160, 'destroyed');
+        this.explosions.push(new Explosion(target.positionX, target.positionY));
+        if (this.alienManager.lasers.length > 0) {
+          this.alienManager.lasers = this.alienManager.lasers.filter((laser) => laser.owner !== target);
+        }
+        return;
+      }
+    }
+    // Fallback: detonate where the missile is, even if the target is already gone.
+    this.explosions.push(new Explosion(missile.positionX, missile.positionY));
+  }
+
+  // Launches homing missiles toward each currently active asteroid.
+  launchMissileBarrage() {
+    const targets = [...this.asteroidManager.asteroids, ...this.alienManager.aliens];
+    if (targets.length === 0) {
+      this.updateStatus('Missile barrage ready, but no targets.');
+      return;
+    }
+
+    this.startCameraShake(4, 0.18);
+    const startX = this.player.positionX + this.player.width * 0.35;
+    for (const asteroid of targets) {
+      const startY = this.player.positionY + (Math.random() - 0.5) * this.player.height * 0.6;
+      this.missiles.push(new Missile(startX, startY, asteroid));
+    }
+    this.updateStatus('Missile barrage launched!');
+    this.updateHud();
+  }
+
+  // Randomized next spawn delay for the rare foreground shooting star hazard.
+  getNextHazardShootingStarSpawnDelay() {
+    return 18 + Math.random() * 28;
+  }
+
+  // Spawns a rare, intense foreground shooting star hazard.
+  spawnHazardShootingStar() {
+    const startX = this.canvas.width + 80;
+    const speed = 1200 + Math.random() * 700;
+
+    const preferPlayer = Math.random() < 0.55;
+    let startY;
+    if (preferPlayer === true) {
+      startY = this.player.positionY + (Math.random() * 2 - 1) * 180;
+    } else {
+      startY = 60 + Math.random() * Math.max(1, this.canvas.height - 120);
+    }
+    startY = Math.max(60, Math.min(this.canvas.height - 60, startY));
+
+    // Aim at the player's current position (one-time aim; does not track after launch).
+    const aimX = this.player.positionX;
+    const aimY = this.player.positionY;
+    const deltaX = aimX - startX;
+    const deltaY = aimY - startY;
+    const distance = Math.hypot(deltaX, deltaY);
+    const directionX = distance > 0 ? deltaX / distance : -1;
+    const directionY = distance > 0 ? deltaY / distance : 0;
+    const velocityX = directionX * speed;
+    const velocityY = directionY * speed;
+
+    const roll = Math.random();
+    // Fiery meteor palette (warm by default).
+    let color = { red: 255, green: 236, blue: 184 }; // white-hot core
+    let glowColor = { red: 255, green: 179, blue: 71 }; // orange glow
+    if (roll < 0.22) {
+      color = { red: 252, green: 211, blue: 77 }; // gold
+      glowColor = { red: 255, green: 107, blue: 107 }; // red-orange
+    } else if (roll < 0.38) {
+      color = { red: 255, green: 179, blue: 71 }; // orange
+      glowColor = { red: 255, green: 59, blue: 59 }; // hot red
+    } else if (roll < 0.5) {
+      color = { red: 255, green: 107, blue: 107 }; // red
+      glowColor = { red: 255, green: 179, blue: 71 }; // orange rim
+    }
+
+    const trailLength = 520 + Math.random() * 380;
+    const thickness = 4 + Math.random() * 3.5;
+    const shootingStar = new HazardShootingStar(startX, startY, velocityX, velocityY, {
+      trailLength,
+      thickness,
+      lifeSeconds: 1.6 + Math.random() * 1.2,
+      color,
+      glowColor
+    });
+    this.hazardShootingStars.push(shootingStar);
+  }
+
+  // Updates foreground shooting star hazards.
+  updateHazardShootingStars(deltaSeconds) {
+    this.hazardShootingStarSpawnTimer += deltaSeconds;
+    if (this.hazardShootingStarSpawnTimer >= this.hazardShootingStarNextSpawnDelay && this.hazardShootingStars.length < 1) {
+      this.spawnHazardShootingStar();
+      this.hazardShootingStarSpawnTimer = 0;
+      this.hazardShootingStarNextSpawnDelay = this.getNextHazardShootingStarSpawnDelay();
+    }
+
+    if (this.hazardShootingStars.length === 0) {
+      return;
+    }
+
+    for (const shootingStar of this.hazardShootingStars) {
+      shootingStar.update(deltaSeconds);
+    }
+
+    this.hazardShootingStars = this.hazardShootingStars.filter((shootingStar) => {
+      if (shootingStar.isExpired() === true) {
+        return false;
+      }
+      if (shootingStar.isOffScreen(this.canvas.width, this.canvas.height) === true) {
+        return false;
+      }
+      return true;
+    });
   }
 
   // Updates explosion animations and removes finished ones.
@@ -805,6 +1008,69 @@ export class Game {
       }
       return true;
     });
+  }
+
+  // Splits asteroids into smaller fragments after they cross a threshold while the splitter powerup is active.
+  applyAsteroidSplitter() {
+    if (this.asteroidSplitterTimer <= 0) {
+      return;
+    }
+    if (this.asteroidManager.asteroids.length === 0) {
+      return;
+    }
+
+    const thresholdX = this.canvas.width * 0.52;
+    const maxSplitsPerFrame = 2;
+    let splits = 0;
+
+    const remainingAsteroids = [];
+    for (const asteroid of this.asteroidManager.asteroids) {
+      const splitDepth = asteroid.splitDepth ?? 0;
+      const canSplit = splitDepth < 1;
+      const largeEnough = (asteroid.radiusX ?? 0) > 24;
+      if (splits < maxSplitsPerFrame && canSplit === true && largeEnough === true && asteroid.positionX <= thresholdX) {
+        splits += 1;
+
+        // Small crack pop when shattering (no score; this is a negative effect).
+        this.explosions.push(new Explosion(asteroid.positionX, asteroid.positionY, { maxRadius: 30, lifeSeconds: 0.32, ringAlpha: 0.22 }));
+
+        const fragments = [];
+        const fragmentScale = 0.58;
+        const separation = Math.max(18, (asteroid.radiusY ?? 30) * 0.4);
+        const baseSpeed = this.asteroidManager.baseSpeedStart ?? 240;
+
+        for (const sign of [-1, 1]) {
+          const fragment = new Asteroid(this.canvas.width, this.canvas.height, baseSpeed, asteroid.spriteImage, 1);
+          fragment.spriteImage = asteroid.spriteImage;
+          fragment.scale = (asteroid.scale ?? 1) * fragmentScale;
+          fragment.radiusX = (asteroid.radiusX ?? 40) * fragmentScale;
+          fragment.radiusY = (asteroid.radiusY ?? 30) * fragmentScale;
+          fragment.positionX = asteroid.positionX;
+
+          const jitter = (Math.random() - 0.5) * 22;
+          const desiredY = asteroid.positionY + sign * separation + jitter;
+          const minY = fragment.radiusY + 6;
+          const maxY = this.canvas.height - fragment.radiusY - 6;
+          fragment.baseY = Math.max(minY, Math.min(maxY, desiredY));
+          fragment.positionY = fragment.baseY;
+
+          fragment.speed = (asteroid.speed ?? 260) * (1.02 + Math.random() * 0.22);
+          fragment.rotation = (asteroid.rotation ?? 0) + (Math.random() - 0.5) * 1.2;
+          fragment.rotationSpeed = (Math.random() - 0.5) * 1.8;
+          fragment.oscPhase = (asteroid.oscPhase ?? 0) + Math.random() * 1.5;
+          fragment.oscSpeed = (asteroid.oscSpeed ?? 1) * (1.05 + Math.random() * 0.35);
+          fragment.activeSizeScale = asteroid.activeSizeScale ?? 1;
+          fragment.splitDepth = splitDepth + 1;
+          fragments.push(fragment);
+        }
+
+        // Remove the original and add fragments.
+        remainingAsteroids.push(...fragments);
+        continue;
+      }
+      remainingAsteroids.push(asteroid);
+    }
+    this.asteroidManager.asteroids = remainingAsteroids;
   }
 
   // Advances space dust particle positions.
@@ -899,10 +1165,12 @@ export class Game {
     this.asteroidManager.draw(this.context);
     this.alienManager.draw(this.context);
     this.drawBullets();
+    this.drawMissiles();
     const flashIntensity = Math.max(this.hitFlashSeconds / 0.3, 0);
     const isCloaked = this.cloakTimer > 0;
     const powerupRatios = this.getPowerupRatios();
     this.player.draw(this.context, isCloaked, flashIntensity, powerupRatios);
+    this.drawHazardShootingStars();
     this.drawExplosions();
     this.drawForceFieldPulse();
     this.context.restore();
@@ -928,6 +1196,20 @@ export class Game {
   drawBullets() {
     for (const bullet of this.bullets) {
       bullet.draw(this.context);
+    }
+  }
+
+  // Renders active missiles to the canvas.
+  drawMissiles() {
+    for (const missile of this.missiles) {
+      missile.draw(this.context);
+    }
+  }
+
+  // Renders rare foreground shooting star hazards.
+  drawHazardShootingStars() {
+    for (const shootingStar of this.hazardShootingStars) {
+      shootingStar.draw(this.context);
     }
   }
 
@@ -1192,6 +1474,7 @@ export class Game {
     this.detectPlayerPowerUpCollision();
     this.detectPlayerAlienCollision();
     this.detectPlayerLaserCollision();
+    this.detectPlayerHazardShootingStarCollision();
   }
 
   // Handles collisions between the player and any asteroid.
@@ -1243,6 +1526,41 @@ export class Game {
     const playerBounds = this.player.getBounds();
     for (const laser of this.alienManager.lasers) {
       if (this.isBoundingOverlap(playerBounds, laser.getBounds()) === true) {
+        this.handleHit();
+        return;
+      }
+    }
+  }
+
+  // Handles collisions with rare foreground shooting star hazards.
+  detectPlayerHazardShootingStarCollision() {
+    if (this.invulnerabilitySeconds > 0) {
+      return;
+    }
+    if (this.hazardShootingStars.length === 0) {
+      return;
+    }
+    const playerBounds = this.player.getBounds();
+    const playerX = this.player.positionX;
+    const playerY = this.player.positionY;
+    const playerRadius = Math.min(this.player.width, this.player.height) * 0.35;
+    for (let index = this.hazardShootingStars.length - 1; index >= 0; index -= 1) {
+      const shootingStar = this.hazardShootingStars[index];
+      // Broad phase.
+      if (this.isBoundingOverlap(playerBounds, shootingStar.getBounds()) !== true) {
+        continue;
+      }
+
+      // Narrow phase: distance from player center to the streak segment.
+      const headX = shootingStar.positionX;
+      const headY = shootingStar.positionY;
+      const tailPoint = shootingStar.getTailPoint();
+      const distance = this.getDistancePointToSegment(playerX, playerY, headX, headY, tailPoint.x, tailPoint.y);
+      const starRadius = shootingStar.thickness * 0.7;
+      if (distance <= playerRadius + starRadius) {
+        this.hazardShootingStars.splice(index, 1);
+        this.explosions.push(new Explosion(shootingStar.positionX, shootingStar.positionY, { kind: 'meteor' }));
+        this.startCameraShake(14, 0.35);
         this.handleHit();
         return;
       }
@@ -1320,6 +1638,22 @@ export class Game {
       this.forceFieldPulseCooldown = 0;
       this.forceFieldPulseActive = 0;
       this.updateStatus('Force field online! Pulses will clear nearby asteroids.');
+      this.updateHud();
+      return;
+    }
+
+    if (powerUp.type === 'missileBarrage') {
+      this.missileBarrageTimer = powerUp.config.durationSeconds;
+      this.durationLookup.missileBarrage = powerUp.config.durationSeconds;
+      this.updateStatus('Missile barrage armed. Stand by...');
+      this.updateHud();
+      return;
+    }
+
+    if (powerUp.type === 'asteroidSplitter') {
+      this.asteroidSplitterTimer = powerUp.config.durationSeconds;
+      this.durationLookup.asteroidSplitter = powerUp.config.durationSeconds;
+      this.updateStatus('Asteroid splitter! Incoming rocks will shatter into smaller ones.');
       this.updateHud();
       return;
     }
@@ -1415,6 +1749,23 @@ export class Game {
     return false;
   }
 
+  // Returns the distance from a point to a line segment.
+  getDistancePointToSegment(pointX, pointY, segmentAX, segmentAY, segmentBX, segmentBY) {
+    const abX = segmentBX - segmentAX;
+    const abY = segmentBY - segmentAY;
+    const apX = pointX - segmentAX;
+    const apY = pointY - segmentAY;
+    const abLenSq = abX * abX + abY * abY;
+    if (abLenSq <= 0) {
+      return Math.hypot(apX, apY);
+    }
+    let t = (apX * abX + apY * abY) / abLenSq;
+    t = Math.max(0, Math.min(1, t));
+    const closestX = segmentAX + abX * t;
+    const closestY = segmentAY + abY * t;
+    return Math.hypot(pointX - closestX, pointY - closestY);
+  }
+
   // Calculates ratios for powerup indicator arcs.
   getPowerupRatios() {
     return {
@@ -1422,6 +1773,8 @@ export class Game {
       blaster: this.durationLookup.blaster > 0 ? this.blasterTimer / this.durationLookup.blaster : 0,
       slow: this.durationLookup.slow > 0 ? this.slowTimer / this.durationLookup.slow : 0,
       forceField: this.durationLookup.forceField > 0 ? this.forceFieldTimer / this.durationLookup.forceField : 0,
+      missileBarrage: this.durationLookup.missileBarrage > 0 ? this.missileBarrageTimer / this.durationLookup.missileBarrage : 0,
+      asteroidSplitter: this.durationLookup.asteroidSplitter > 0 ? this.asteroidSplitterTimer / this.durationLookup.asteroidSplitter : 0,
       spaceDust: this.durationLookup.spaceDust > 0 ? this.spaceDustTimer / this.durationLookup.spaceDust : 0,
       multiplier: this.durationLookup.multiplier > 0 ? this.multiplierTimer / this.durationLookup.multiplier : 0,
       blackHole: this.durationLookup.blackHole > 0 ? this.blackHoleTimer / this.durationLookup.blackHole : 0,

@@ -254,6 +254,8 @@ export class Player {
       blaster: '#ffde59',
       slow: '#b39cff',
       forceField: '#60a5fa',
+      missileBarrage: '#93c5fd',
+      asteroidSplitter: '#67f4c1',
       multiplier: '#ff9f45',
       blackHole: '#ff6b6b',
       solarFlare: '#ffb347',
