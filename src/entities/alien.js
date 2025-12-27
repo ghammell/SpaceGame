@@ -72,6 +72,8 @@ export class Laser {
   constructor(startX, startY) {
     this.positionX = startX;
     this.positionY = startY;
+    this.previousPositionX = startX;
+    this.previousPositionY = startY;
     this.width = 16;
     this.height = 4;
     this.speed = 520;
@@ -79,6 +81,8 @@ export class Laser {
 
   // Advances the laser to the left.
   update(deltaSeconds) {
+    this.previousPositionX = this.positionX;
+    this.previousPositionY = this.positionY;
     const positionDelta = this.speed * deltaSeconds;
     this.positionX -= positionDelta;
   }
@@ -97,8 +101,39 @@ export class Laser {
 
   // Draws the laser bolt.
   draw(drawingContext) {
+    const tailX = this.previousPositionX;
+    const tailY = this.previousPositionY;
+    const headX = this.positionX;
+    const headY = this.positionY;
+
+    // Trail (subtle, screen blend).
+    drawingContext.save();
+    drawingContext.globalCompositeOperation = 'screen';
+    const trailGradient = drawingContext.createLinearGradient(tailX, tailY, headX, headY);
+    trailGradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+    trailGradient.addColorStop(0.6, 'rgba(255, 107, 107, 0.25)');
+    trailGradient.addColorStop(1, 'rgba(255, 107, 107, 0.9)');
+    drawingContext.strokeStyle = trailGradient;
+    drawingContext.lineWidth = this.height * 2.8;
+    drawingContext.lineCap = 'round';
+    drawingContext.beginPath();
+    drawingContext.moveTo(tailX, tailY);
+    drawingContext.lineTo(headX, headY);
+    drawingContext.stroke();
+    drawingContext.restore();
+
     drawingContext.save();
     drawingContext.translate(this.positionX, this.positionY);
+
+    // Glow.
+    drawingContext.globalCompositeOperation = 'screen';
+    drawingContext.globalAlpha = 0.22;
+    drawingContext.fillStyle = 'rgba(255, 107, 107, 0.9)';
+    drawingContext.beginPath();
+    drawingContext.roundRect(-this.width * 0.6, -this.height * 0.95, this.width * 1.2, this.height * 1.9, 4);
+    drawingContext.fill();
+    drawingContext.globalAlpha = 1;
+
     drawingContext.fillStyle = '#ff6b6b';
     drawingContext.beginPath();
     drawingContext.roundRect(-this.width * 0.5, -this.height * 0.5, this.width, this.height, 3);

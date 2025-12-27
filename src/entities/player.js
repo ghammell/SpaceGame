@@ -112,6 +112,10 @@ export class Player {
     const tiltAngle = Math.max(Math.min(this.velocityY / 800, 0.35), -0.35);
     drawingContext.rotate(tiltAngle);
 
+    if (isCloaked === true) {
+      drawingContext.globalAlpha = 0.28;
+    }
+
     if (this.spriteImage !== undefined && this.spriteImage !== null) {
       drawingContext.drawImage(this.spriteImage, -this.width * 0.5, -this.height * 0.5, this.width, this.height);
     } else {
@@ -124,6 +128,25 @@ export class Player {
       drawingContext.fillStyle = this.tintColor;
       drawingContext.fillRect(-this.width * 0.5, -this.height * 0.5, this.width, this.height);
       drawingContext.globalCompositeOperation = 'source-over';
+    }
+
+    if (isCloaked === true) {
+      // Shimmer outline to show the cloak is active.
+      const time = performance.now() * 0.001;
+      const sweep = Math.sin(time * 4) * this.width * 0.4;
+      const shimmer = drawingContext.createLinearGradient(-this.width * 0.7 + sweep, 0, this.width * 0.7 + sweep, 0);
+      shimmer.addColorStop(0, 'rgba(106, 199, 255, 0)');
+      shimmer.addColorStop(0.5, 'rgba(106, 199, 255, 0.95)');
+      shimmer.addColorStop(1, 'rgba(106, 199, 255, 0)');
+      drawingContext.globalCompositeOperation = 'screen';
+      drawingContext.globalAlpha = 0.65;
+      drawingContext.strokeStyle = shimmer;
+      drawingContext.lineWidth = 3;
+      drawingContext.beginPath();
+      drawingContext.roundRect(-this.width * 0.52, -this.height * 0.52, this.width * 1.04, this.height * 1.04, 14);
+      drawingContext.stroke();
+      drawingContext.globalCompositeOperation = 'source-over';
+      drawingContext.globalAlpha = 1;
     }
 
     drawingContext.globalAlpha = 0.55;
@@ -158,21 +181,41 @@ export class Player {
   // Draws small exhaust puffs when thrusting upward.
   drawThrust(drawingContext) {
     drawingContext.save();
-    drawingContext.translate(0, this.height * 0.35);
-    const puffCount = 3;
-    for (let puffIndex = 0; puffIndex < puffCount; puffIndex += 1) {
-      const offsetX = (-6 + Math.random() * 12);
-      const offsetY = 10 + Math.random() * 12;
-      const size = 4 + Math.random() * 6;
-      drawingContext.fillStyle = 'rgba(255,255,255,0.8)';
-      drawingContext.beginPath();
-      drawingContext.arc(offsetX, offsetY, size, 0, Math.PI * 2);
-      drawingContext.fill();
-      drawingContext.fillStyle = 'rgba(120,200,255,0.7)';
-      drawingContext.beginPath();
-      drawingContext.arc(offsetX + 2, offsetY + 2, size * 0.6, 0, Math.PI * 2);
-      drawingContext.fill();
-    }
+    drawingContext.translate(-this.width * 0.1, this.height * 0.34);
+
+    const time = performance.now() * 0.001;
+    const thrustStrength = Math.max(0, Math.min(1.4, (-this.velocityY - 60) / 520));
+    const baseLength = 16 + 18 * thrustStrength;
+    const flicker = 0.12 * Math.sin(time * 24 + this.positionY * 0.01) + 0.07 * Math.sin(time * 37);
+    const flameLength = baseLength * (1 + flicker);
+    const flameWidth = 9 + 6 * thrustStrength;
+
+    drawingContext.globalCompositeOperation = 'screen';
+
+    // Outer glow.
+    const glow = drawingContext.createRadialGradient(0, flameLength * 0.35, 2, 0, flameLength * 0.45, flameLength);
+    glow.addColorStop(0, 'rgba(255,255,255,0.55)');
+    glow.addColorStop(0.35, 'rgba(103,244,193,0.22)');
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    drawingContext.fillStyle = glow;
+    drawingContext.beginPath();
+    drawingContext.ellipse(0, flameLength * 0.45, flameWidth * 0.95, flameLength * 0.65, 0, 0, Math.PI * 2);
+    drawingContext.fill();
+
+    // Flame core.
+    const core = drawingContext.createLinearGradient(0, 0, 0, flameLength);
+    core.addColorStop(0, 'rgba(255,255,255,0.92)');
+    core.addColorStop(0.35, 'rgba(147,197,253,0.88)');
+    core.addColorStop(0.8, 'rgba(59,130,246,0.32)');
+    core.addColorStop(1, 'rgba(59,130,246,0)');
+    drawingContext.fillStyle = core;
+    drawingContext.beginPath();
+    drawingContext.moveTo(-flameWidth * 0.35, 0);
+    drawingContext.quadraticCurveTo(-flameWidth, flameLength * 0.35, 0, flameLength);
+    drawingContext.quadraticCurveTo(flameWidth, flameLength * 0.35, flameWidth * 0.35, 0);
+    drawingContext.closePath();
+    drawingContext.fill();
+
     drawingContext.restore();
   }
 

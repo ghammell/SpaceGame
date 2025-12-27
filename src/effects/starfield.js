@@ -8,11 +8,13 @@ export class Starfield {
     this.nebulaBlobs = [];
     this.planets = [];
     this.shootingStars = [];
+    this.dustMotes = [];
     this.timeSeconds = 0;
     this.nextPlanetSpawnSeconds = 0;
     this.nextShootingStarSpawnSeconds = 0;
     this.buildStars();
     this.buildNebula();
+    this.buildDustMotes();
     this.resetPlanetSpawner();
     this.resetShootingStarSpawner();
   }
@@ -70,6 +72,28 @@ export class Starfield {
     for (let blobIndex = 0; blobIndex < blobCount; blobIndex += 1) {
       this.nebulaBlobs.push(this.createNebulaBlob(true));
     }
+  }
+
+  // Creates a subtle midground dust layer (very faint, non-distracting).
+  buildDustMotes() {
+    const moteCount = 34;
+    this.dustMotes = [];
+    for (let moteIndex = 0; moteIndex < moteCount; moteIndex += 1) {
+      this.dustMotes.push(this.createDustMote(true));
+    }
+  }
+
+  // Generates a single dust mote.
+  createDustMote(randomizeX) {
+    const radius = 0.7 + Math.random() * 2.2;
+    const positionX = randomizeX === true ? Math.random() * this.canvasWidth : this.canvasWidth + Math.random() * this.canvasWidth * 0.4;
+    const positionY = Math.random() * this.canvasHeight;
+    const alpha = 0.04 + Math.random() * 0.14;
+    const speed = 6 + Math.random() * 20;
+    const drift = (Math.random() - 0.5) * 10;
+    const roll = Math.random();
+    const color = roll < 0.7 ? '#ffffff' : (roll < 0.88 ? '#cfe8ff' : '#ffe9c4');
+    return { positionX, positionY, radius, alpha, speed, drift, color };
   }
 
   // Generates a single nebula haze blob (very low opacity).
@@ -196,6 +220,7 @@ export class Starfield {
     this.canvasHeight = canvasHeight;
     this.buildStars();
     this.buildNebula();
+    this.buildDustMotes();
     this.resetPlanetSpawner();
     this.resetShootingStarSpawner();
   }
@@ -244,6 +269,26 @@ export class Starfield {
       }
     }
 
+    for (const mote of this.dustMotes) {
+      mote.positionX -= mote.speed * deltaSeconds;
+      mote.positionY += mote.drift * deltaSeconds;
+      if (mote.positionX < -mote.radius * 6) {
+        const reset = this.createDustMote(false);
+        mote.positionX = reset.positionX;
+        mote.positionY = reset.positionY;
+        mote.radius = reset.radius;
+        mote.alpha = reset.alpha;
+        mote.speed = reset.speed;
+        mote.drift = reset.drift;
+        mote.color = reset.color;
+      }
+      if (mote.positionY < -mote.radius * 6) {
+        mote.positionY = this.canvasHeight + mote.radius * 6;
+      } else if (mote.positionY > this.canvasHeight + mote.radius * 6) {
+        mote.positionY = -mote.radius * 6;
+      }
+    }
+
     if (this.planets.length > 0) {
       for (const planet of this.planets) {
         planet.positionX -= planet.speed * deltaSeconds;
@@ -281,6 +326,15 @@ export class Starfield {
       gradient.addColorStop(1, `rgba(${color.red}, ${color.green}, ${color.blue}, 0)`);
       drawingContext.fillStyle = gradient;
       drawingContext.fillRect(blob.positionX - blob.radius, blob.positionY - blob.radius, blob.radius * 2, blob.radius * 2);
+    }
+
+    // Midground dust motes.
+    for (const mote of this.dustMotes) {
+      drawingContext.globalAlpha = mote.alpha;
+      drawingContext.fillStyle = mote.color;
+      drawingContext.beginPath();
+      drawingContext.arc(mote.positionX, mote.positionY, mote.radius, 0, Math.PI * 2);
+      drawingContext.fill();
     }
 
     // Stars (normal blend on top).

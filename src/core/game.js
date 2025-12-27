@@ -93,6 +93,18 @@ export class Game {
     this.movementInput = { moveLeft: false, moveRight: false, moveDown: false };
     this.lastFrameTimestamp = 0;
     this.isTouchPrimaryDevice = this.detectTouchFirstDevice();
+    this.cameraShakeSecondsRemaining = 0;
+    this.cameraShakeDurationSeconds = 0;
+    this.cameraShakeIntensity = 0;
+    this.cameraOffsetX = 0;
+    this.cameraOffsetY = 0;
+    this.enablePowerupScreenFx = false;
+    this.enableFilmGrain = false;
+    this.filmGrainCanvas = this.enableFilmGrain === true ? this.buildFilmGrainCanvas() : null;
+    this.filmGrainPattern = this.filmGrainCanvas !== null ? this.context.createPattern(this.filmGrainCanvas, 'repeat') : null;
+    this.filmGrainRefreshSeconds = 0;
+    this.filmGrainOffsetX = 0;
+    this.filmGrainOffsetY = 0;
 
     this.gameLoop = this.gameLoop.bind(this);
     this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -558,7 +570,109 @@ export class Game {
       }
     }
 
+    this.updateCameraShake(deltaSeconds);
+    this.updateFilmGrain(deltaSeconds);
     this.updateHud();
+  }
+
+  // Starts a subtle camera shake (hit feedback).
+  startCameraShake(intensity = 7, durationSeconds = 0.18) {
+    const safeIntensity = Math.max(0, intensity);
+    const safeDuration = Math.max(0, durationSeconds);
+    if (safeIntensity <= 0 || safeDuration <= 0) {
+      return;
+    }
+    this.cameraShakeIntensity = Math.max(this.cameraShakeIntensity, safeIntensity);
+    this.cameraShakeDurationSeconds = Math.max(this.cameraShakeDurationSeconds, safeDuration);
+    this.cameraShakeSecondsRemaining = Math.max(this.cameraShakeSecondsRemaining, safeDuration);
+  }
+
+  // Updates camera shake offsets with easing.
+  updateCameraShake(deltaSeconds) {
+    if (this.cameraShakeSecondsRemaining <= 0) {
+      this.cameraShakeSecondsRemaining = 0;
+      this.cameraShakeDurationSeconds = 0;
+      this.cameraShakeIntensity = 0;
+      this.cameraOffsetX = 0;
+      this.cameraOffsetY = 0;
+      return;
+    }
+    this.cameraShakeSecondsRemaining -= deltaSeconds;
+    if (this.cameraShakeSecondsRemaining < 0) {
+      this.cameraShakeSecondsRemaining = 0;
+    }
+    const duration = this.cameraShakeDurationSeconds > 0 ? this.cameraShakeDurationSeconds : 0.0001;
+    const remainingRatio = Math.max(0, Math.min(1, this.cameraShakeSecondsRemaining / duration));
+    const strength = this.cameraShakeIntensity * remainingRatio * remainingRatio;
+    this.cameraOffsetX = (Math.random() * 2 - 1) * strength;
+    this.cameraOffsetY = (Math.random() * 2 - 1) * strength;
+  }
+
+  // Creates a tiny noise canvas used for film grain.
+  buildFilmGrainCanvas() {
+    if (typeof document === 'undefined') {
+      return null;
+    }
+    try {
+      const grainCanvas = document.createElement('canvas');
+      const size = 96;
+      grainCanvas.width = size;
+      grainCanvas.height = size;
+      const grainContext = grainCanvas.getContext('2d', { willReadFrequently: true });
+      if (grainContext === null) {
+        return null;
+      }
+      this.filmGrainContext = grainContext;
+      this.filmGrainSize = size;
+      this.regenerateFilmGrain(grainContext, size);
+      return grainCanvas;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // Regenerates the film grain noise pixels.
+  regenerateFilmGrain(grainContext, size) {
+    const context = grainContext ?? this.filmGrainContext;
+    if (context === undefined || context === null) {
+      return;
+    }
+    const canvasSize = typeof size === 'number'
+      ? size
+      : (typeof this.filmGrainSize === 'number' ? this.filmGrainSize : 96);
+
+    const imageData = context.createImageData(canvasSize, canvasSize);
+    const data = imageData.data;
+    for (let index = 0; index < data.length; index += 4) {
+      const value = Math.floor(Math.random() * 256);
+      data[index] = value;
+      data[index + 1] = value;
+      data[index + 2] = value;
+      data[index + 3] = 50 + Math.floor(Math.random() * 90);
+    }
+    context.putImageData(imageData, 0, 0);
+  }
+
+  // Updates the grain pattern occasionally and jitters its offsets.
+  updateFilmGrain(deltaSeconds) {
+    if (this.enableFilmGrain !== true) {
+      return;
+    }
+    if (this.spaceDustIntensity > 0) {
+      return;
+    }
+    if (this.filmGrainCanvas === null || this.filmGrainContext === undefined) {
+      return;
+    }
+    this.filmGrainRefreshSeconds -= deltaSeconds;
+    if (this.filmGrainRefreshSeconds <= 0) {
+      this.filmGrainRefreshSeconds = 0.18 + Math.random() * 0.12;
+      this.regenerateFilmGrain(this.filmGrainContext, this.filmGrainSize);
+      this.filmGrainPattern = this.context.createPattern(this.filmGrainCanvas, 'repeat');
+    }
+    const jitterSpeed = 28;
+    this.filmGrainOffsetX = (this.filmGrainOffsetX + jitterSpeed * deltaSeconds) % this.filmGrainCanvas.width;
+    this.filmGrainOffsetY = (this.filmGrainOffsetY + jitterSpeed * 0.8 * deltaSeconds) % this.filmGrainCanvas.height;
   }
 
   // Handles firing a bullet when the blaster is active.
@@ -722,10 +836,9 @@ export class Game {
   buildSpaceDustParticles() {
     const renderScale = this.renderScale > 0 ? this.renderScale : 1;
     const displayWidth = this.canvas.width * renderScale;
-    const displayHeight = this.canvas.height * renderScale;
-
-    const hazeCount = 50;
-    const wallCount = 28;
+    const qualityScale = Math.max(0.55, Math.min(1, renderScale));
+    const hazeCount = Math.round(38 * qualityScale);
+    const wallCount = Math.round(20 * qualityScale);
     const count = hazeCount + wallCount;
     const particles = [];
     for (let particleIndex = 0; particleIndex < count; particleIndex += 1) {
@@ -778,6 +891,10 @@ export class Game {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.drawBackground();
     this.starfield.draw(this.context);
+
+    // Gameplay layer (shake gameplay, keep HUD stable).
+    this.context.save();
+    this.context.translate(this.cameraOffsetX, this.cameraOffsetY);
     this.powerUpManager.draw(this.context);
     this.asteroidManager.draw(this.context);
     this.alienManager.draw(this.context);
@@ -787,10 +904,13 @@ export class Game {
     const powerupRatios = this.getPowerupRatios();
     this.player.draw(this.context, isCloaked, flashIntensity, powerupRatios);
     this.drawExplosions();
+    this.drawForceFieldPulse();
+    this.context.restore();
 
+    // Screen-space overlays (stable).
     this.drawHitFlashOverlay();
     this.drawSpaceDustOverlay();
-    this.drawForceFieldPulse();
+    this.drawPostFxOverlay();
     this.drawCountdownOverlay();
     this.drawCanvasHud();
   }
@@ -910,6 +1030,141 @@ export class Game {
     }
 
     this.context.restore();
+  }
+
+  // Draws post-processing overlays (vignette, grain, and powerup screen FX).
+  drawPostFxOverlay() {
+    const width = this.canvas.width;
+    const height = this.canvas.height;
+    if (width <= 0 || height <= 0) {
+      return;
+    }
+
+    // Vignette (subtle, ramps up slightly with danger).
+    const lowLives = Math.max(0, 3 - this.livesRemaining);
+    const hitPulse = Math.max(this.hitFlashSeconds / 0.3, 0);
+    const dangerBoost = (lowLives * 0.06) + hitPulse * 0.07;
+    const dustBoost = this.spaceDustIntensity > 0 ? this.spaceDustIntensity * 0.05 : 0;
+    const vignetteAlpha = Math.max(0.14, Math.min(0.32, 0.18 + dangerBoost + dustBoost));
+    this.context.save();
+    const centerX = width * 0.5;
+    const centerY = height * 0.5;
+    const innerRadius = Math.min(width, height) * 0.35;
+    const outerRadius = Math.hypot(width, height) * 0.6;
+    const vignette = this.context.createRadialGradient(centerX, centerY, innerRadius, centerX, centerY, outerRadius);
+    vignette.addColorStop(0, 'rgba(0,0,0,0)');
+    vignette.addColorStop(1, `rgba(0,0,0,${vignetteAlpha})`);
+    this.context.fillStyle = vignette;
+    this.context.fillRect(0, 0, width, height);
+    this.context.restore();
+
+    // Powerup screen FX.
+    if (this.enablePowerupScreenFx === true) {
+      this.drawPowerupScreenFx();
+    }
+
+    // Film grain (tiny).
+    if (this.enableFilmGrain === true && this.filmGrainPattern !== null && this.filmGrainCanvas !== null && this.spaceDustIntensity <= 0) {
+      const grainAlpha = 0.04;
+      const grainWidth = this.filmGrainCanvas.width;
+      const grainHeight = this.filmGrainCanvas.height;
+      this.context.save();
+      this.context.globalAlpha = Math.min(0.07, grainAlpha);
+      this.context.translate(-this.filmGrainOffsetX, -this.filmGrainOffsetY);
+      this.context.fillStyle = this.filmGrainPattern;
+      this.context.fillRect(0, 0, width + grainWidth, height + grainHeight);
+      this.context.restore();
+    }
+  }
+
+  // Draws subtle screen-space effects keyed off active powerups.
+  drawPowerupScreenFx() {
+    const width = this.canvas.width;
+    const height = this.canvas.height;
+
+    // Cloak: faint shimmer sweep.
+    if (this.cloakTimer > 0) {
+      const ratio = this.durationLookup.cloak > 0 ? this.cloakTimer / this.durationLookup.cloak : 1;
+      const intensity = 0.12 + 0.10 * Math.max(0, Math.min(1, ratio));
+      const time = this.timeElapsedSeconds;
+      const sweepCenter = (time * 220) % (width + 240) - 120;
+      const shimmer = this.context.createLinearGradient(sweepCenter - 140, 0, sweepCenter + 140, 0);
+      shimmer.addColorStop(0, 'rgba(106, 199, 255, 0)');
+      shimmer.addColorStop(0.5, `rgba(106, 199, 255, ${intensity})`);
+      shimmer.addColorStop(1, 'rgba(106, 199, 255, 0)');
+      this.context.save();
+      this.context.globalCompositeOperation = 'screen';
+      this.context.fillStyle = shimmer;
+      this.context.fillRect(0, 0, width, height);
+      this.context.restore();
+    }
+
+    // Slow: cool tint (subtle).
+    if (this.slowTimer > 0) {
+      const ratio = this.durationLookup.slow > 0 ? this.slowTimer / this.durationLookup.slow : 1;
+      const intensity = 0.06 + 0.06 * Math.max(0, Math.min(1, ratio));
+      this.context.save();
+      this.context.fillStyle = `rgba(179, 156, 255, ${intensity})`;
+      this.context.fillRect(0, 0, width, height);
+      this.context.restore();
+    }
+
+    // Black hole: dark radial pull on the right side.
+    if (this.blackHoleTimer > 0) {
+      const ratio = this.durationLookup.blackHole > 0 ? this.blackHoleTimer / this.durationLookup.blackHole : 1;
+      const intensity = 0.22 + 0.18 * Math.max(0, Math.min(1, ratio));
+      const centerX = width * 0.86;
+      const centerY = height * 0.52;
+      const radius = Math.max(width, height) * 0.65;
+      const pull = this.context.createRadialGradient(centerX, centerY, radius * 0.1, centerX, centerY, radius);
+      pull.addColorStop(0, `rgba(0,0,0,${intensity})`);
+      pull.addColorStop(1, 'rgba(0,0,0,0)');
+      this.context.save();
+      this.context.globalCompositeOperation = 'multiply';
+      this.context.fillStyle = pull;
+      this.context.fillRect(0, 0, width, height);
+      this.context.restore();
+    }
+
+    // Solar flare: warm rim light + gentle top glow.
+    if (this.solarFlareTimer > 0) {
+      const ratio = this.durationLookup.solarFlare > 0 ? this.solarFlareTimer / this.durationLookup.solarFlare : 1;
+      const intensity = 0.08 + 0.10 * Math.max(0, Math.min(1, ratio));
+      this.context.save();
+      this.context.globalCompositeOperation = 'screen';
+      const topGlow = this.context.createLinearGradient(0, 0, 0, height * 0.6);
+      topGlow.addColorStop(0, `rgba(255, 179, 71, ${intensity})`);
+      topGlow.addColorStop(1, 'rgba(255, 179, 71, 0)');
+      this.context.fillStyle = topGlow;
+      this.context.fillRect(0, 0, width, height);
+      const edgeGlow = this.context.createRadialGradient(width * 0.5, height * 0.5, Math.min(width, height) * 0.2, width * 0.5, height * 0.5, Math.hypot(width, height) * 0.6);
+      edgeGlow.addColorStop(0, 'rgba(255,179,71,0)');
+      edgeGlow.addColorStop(1, `rgba(255, 107, 107, ${intensity * 0.85})`);
+      this.context.fillStyle = edgeGlow;
+      this.context.fillRect(0, 0, width, height);
+      this.context.restore();
+    }
+
+    // Wave: faint horizontal ripple bands.
+    if (this.waveTimer > 0) {
+      const ratio = this.durationLookup.wave > 0 ? this.waveTimer / this.durationLookup.wave : 1;
+      const intensity = 0.05 + 0.05 * Math.max(0, Math.min(1, ratio));
+      this.context.save();
+      this.context.globalCompositeOperation = 'screen';
+      this.context.strokeStyle = `rgba(122, 208, 255, ${intensity})`;
+      this.context.lineWidth = 1;
+      const time = this.timeElapsedSeconds;
+      const bandCount = 10;
+      for (let bandIndex = 0; bandIndex < bandCount; bandIndex += 1) {
+        const y = (height * (bandIndex + 1)) / (bandCount + 1);
+        const wave = Math.sin(time * 2 + bandIndex) * 10;
+        this.context.beginPath();
+        this.context.moveTo(0, y + wave);
+        this.context.lineTo(width, y - wave);
+        this.context.stroke();
+      }
+      this.context.restore();
+    }
   }
 
   // Draws the countdown overlay when starting a new run.
@@ -1123,6 +1378,7 @@ export class Game {
     this.invulnerabilitySeconds = 1.2;
     this.hitPauseSeconds = 0.35;
     this.hitFlashSeconds = 0.3;
+    this.startCameraShake(8, 0.22);
     this.explosions.push(new Explosion(this.player.positionX, this.player.positionY));
     this.player.setAppearanceByLives(this.livesRemaining);
     this.updateHud();
