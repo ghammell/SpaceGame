@@ -8,6 +8,7 @@ import { Bullet } from '../entities/bullet.js';
 import { Missile } from '../entities/missile.js';
 import { HazardShootingStar } from '../entities/hazardShootingStar.js';
 import { StormShootingStar } from '../entities/stormShootingStar.js';
+import { SpaceDebris } from '../entities/spaceDebris.js';
 import { Asteroid } from '../entities/asteroid.js';
 import { setTestModeConfig } from '../entities/powerUp.js';
 import { AllyAlien } from '../entities/allyAlien.js';
@@ -50,6 +51,7 @@ export class Game {
       this.loadImage('./assets/effects/spacedust-cloud2.svg'),
       this.loadImage('./assets/effects/spacedust-cloud3.svg')
     ];
+    this.spaceDebrisSprites = Array.isArray(assets.spaceDebrisSprites) === true ? assets.spaceDebrisSprites : [];
     this.highScores = this.loadHighScores();
     this.lastUsedName = this.loadLastName();
     this.renderHighScores();
@@ -57,6 +59,8 @@ export class Game {
     this.explosions = [];
     this.bullets = [];
     this.missiles = [];
+    this.spaceDebrisPieces = [];
+    this.spaceDebrisSpawnCooldownSeconds = 0;
     this.hazardShootingStars = [];
     this.hazardShootingStarSpawnTimer = 0;
     this.hazardShootingStarNextSpawnDelay = this.getNextHazardShootingStarSpawnDelay();
@@ -80,8 +84,8 @@ export class Game {
     this.solarFlareTimer = 0;
     this.waveTimer = 0;
     this.waveSettings = { amplitude: 78, speed: 2.6 };
-    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, allyAlien: 0, shootingStarStorm: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
-    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, allyAlien: 0, shootingStarStorm: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, allyAlien: 0, shootingStarStorm: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, spaceDebris: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, allyAlien: 0, shootingStarStorm: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, spaceDebris: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
     this.forceFieldTimer = 0;
     this.forceFieldPulseCooldown = 0;
     this.forceFieldPulseActive = 0;
@@ -96,6 +100,7 @@ export class Game {
     this.missileBarrageTimer = 0;
     this.asteroidSplitterTimer = 0;
     this.spaceDustTimer = 0;
+    this.spaceDebrisTimer = 0;
     this.spaceDustIntensity = 0;
     this.spaceDustParticles = [];
     this.testModeEnabled = false;
@@ -294,11 +299,12 @@ export class Game {
     this.missileBarrageTimer = 0;
     this.asteroidSplitterTimer = 0;
     this.spaceDustTimer = 0;
+    this.spaceDebrisTimer = 0;
     this.spaceDustIntensity = 0;
     this.spaceDustParticles = [];
     this.orbitalLaserStartAngleRadians = 0;
-    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, allyAlien: 0, shootingStarStorm: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
-    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, allyAlien: 0, shootingStarStorm: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.durationLookup = { cloak: 0, blaster: 0, slow: 0, allyAlien: 0, shootingStarStorm: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, spaceDebris: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
+    this.powerupUptime = { cloak: 0, blaster: 0, slow: 0, allyAlien: 0, shootingStarStorm: 0, forceField: 0, orbitalLaser: 0, seekerMissiles: 0, missileBarrage: 0, asteroidSplitter: 0, spaceDust: 0, spaceDebris: 0, multiplier: 0, blackHole: 0, solarFlare: 0, wave: 0 };
     this.isCountdownActive = false;
     this.countdownRemaining = 0;
     this.resetFrameTimestampNextFrame = false;
@@ -321,6 +327,8 @@ export class Game {
     this.explosions = [];
     this.bullets = [];
     this.missiles = [];
+    this.spaceDebrisPieces = [];
+    this.spaceDebrisSpawnCooldownSeconds = 0;
     this.hazardShootingStars = [];
     this.hazardShootingStarSpawnTimer = 0;
     this.hazardShootingStarNextSpawnDelay = this.getNextHazardShootingStarSpawnDelay();
@@ -517,6 +525,7 @@ export class Game {
     this.updateBullets(deltaSeconds);
     this.updateMissiles(deltaSeconds);
     this.updateShootingStarStorm(deltaSeconds);
+    this.updateSpaceDebris(deltaSeconds);
     this.updateHazardShootingStars(deltaSeconds);
     this.updateExplosions(deltaSeconds);
     this.updateSpaceDust(deltaSeconds);
@@ -541,12 +550,14 @@ export class Game {
     const prevMissileBarrage = this.missileBarrageTimer;
     const prevAsteroidSplitter = this.asteroidSplitterTimer;
     const prevSpaceDust = this.spaceDustTimer;
+    const prevSpaceDebris = this.spaceDebrisTimer;
     this.timeElapsedSeconds += deltaSeconds;
     const negativeActive = this.blackHoleTimer > 0
       || this.solarFlareTimer > 0
       || this.waveTimer > 0
       || this.asteroidSplitterTimer > 0
-      || this.spaceDustTimer > 0;
+      || this.spaceDustTimer > 0
+      || this.spaceDebrisTimer > 0;
     const timePoints = deltaSeconds * 5 * (negativeActive ? 2 : 1);
     this.addScore(timePoints, 'time');
     if (this.cloakTimer > 0) {
@@ -581,6 +592,9 @@ export class Game {
     }
     if (this.spaceDustTimer > 0) {
       this.powerupUptime.spaceDust += deltaSeconds;
+    }
+    if (this.spaceDebrisTimer > 0) {
+      this.powerupUptime.spaceDebris += deltaSeconds;
     }
     if (this.invulnerabilitySeconds > 0) {
       this.invulnerabilitySeconds -= deltaSeconds;
@@ -681,6 +695,13 @@ export class Game {
       }
     }
 
+    if (this.spaceDebrisTimer > 0) {
+      this.spaceDebrisTimer -= deltaSeconds;
+      if (this.spaceDebrisTimer < 0) {
+        this.spaceDebrisTimer = 0;
+      }
+    }
+
     // Keep space dust highly obscuring while active, and fade out smoothly after the timer ends.
     const hasSpaceDustActive = this.spaceDustTimer > 0;
     let spaceDustTargetIntensity = 0;
@@ -734,6 +755,10 @@ export class Game {
     }
     if (prevSpaceDust > 0 && this.spaceDustTimer <= 0) {
       this.addScore(200, 'negative');
+    }
+    if (prevSpaceDebris > 0 && this.spaceDebrisTimer <= 0) {
+      this.addScore(200, 'negative');
+      this.updateStatus('Space debris cleared.');
     }
     if (prevMultiplier > 0 && this.multiplierTimer <= 0) {
       // no bonus for multiplier ending
@@ -901,6 +926,7 @@ export class Game {
     const remainingBullets = [];
     for (const bullet of this.bullets) {
       let bulletHitAsteroid = false;
+      let bulletHitDebris = false;
       let bulletHitAlien = false;
       for (let asteroidIndex = this.asteroidManager.asteroids.length - 1; asteroidIndex >= 0; asteroidIndex -= 1) {
         const asteroid = this.asteroidManager.asteroids[asteroidIndex];
@@ -914,7 +940,21 @@ export class Game {
         }
       }
 
-      if (bulletHitAsteroid === false) {
+      if (bulletHitAsteroid === false && this.spaceDebrisPieces.length > 0) {
+        for (let debrisIndex = this.spaceDebrisPieces.length - 1; debrisIndex >= 0; debrisIndex -= 1) {
+          const debris = this.spaceDebrisPieces[debrisIndex];
+          if (this.isBoundingOverlap(bullet.getBounds(), debris.getBounds()) === true) {
+            this.spaceDebrisPieces.splice(debrisIndex, 1);
+            bulletHitDebris = true;
+            this.explosions.push(new Explosion(debris.positionX, debris.positionY, { maxRadius: 58, ringAlpha: 0.3 }));
+            this.destroyedCount += 1;
+            this.addScore(110, 'destroyed');
+            break;
+          }
+        }
+      }
+
+      if (bulletHitAsteroid === false && bulletHitDebris === false) {
         for (let alienIndex = this.alienManager.aliens.length - 1; alienIndex >= 0; alienIndex -= 1) {
           const alien = this.alienManager.aliens[alienIndex];
           if (this.isBoundingOverlap(bullet.getBounds(), alien.getBounds()) === true) {
@@ -931,7 +971,7 @@ export class Game {
         }
       }
 
-      if (bulletHitAsteroid === false && bulletHitAlien === false && bullet.isOffScreen(this.canvas.width) === false) {
+      if (bulletHitAsteroid === false && bulletHitDebris === false && bulletHitAlien === false && bullet.isOffScreen(this.canvas.width) === false) {
         remainingBullets.push(bullet);
       }
     }
@@ -974,6 +1014,15 @@ export class Game {
         return;
       }
 
+      const debrisIndex = this.spaceDebrisPieces.indexOf(target);
+      if (debrisIndex >= 0) {
+        this.spaceDebrisPieces.splice(debrisIndex, 1);
+        this.destroyedCount += 1;
+        this.addScore(110, 'destroyed');
+        this.explosions.push(new Explosion(target.positionX, target.positionY, { maxRadius: 62, ringAlpha: 0.35 }));
+        return;
+      }
+
       const alienIndex = this.alienManager.aliens.indexOf(target);
       if (alienIndex >= 0) {
         this.alienManager.aliens.splice(alienIndex, 1);
@@ -992,7 +1041,7 @@ export class Game {
 
   // Launches homing missiles toward each currently active asteroid.
   launchMissileBarrage() {
-    const targets = [...this.asteroidManager.asteroids, ...this.alienManager.aliens];
+    const targets = [...this.asteroidManager.asteroids, ...this.spaceDebrisPieces, ...this.alienManager.aliens];
     if (targets.length === 0) {
       this.updateStatus('Missile barrage ready, but no targets.');
       return;
@@ -1132,7 +1181,27 @@ export class Game {
         }
       }
 
+      let hitDebris = false;
+      if (hitAsteroid !== true && clearedThisFrame < maxAsteroidClearsPerFrame && this.spaceDebrisPieces.length > 0) {
+        const headBounds = stormStar.getHeadBounds();
+        for (let debrisIndex = this.spaceDebrisPieces.length - 1; debrisIndex >= 0; debrisIndex -= 1) {
+          const debris = this.spaceDebrisPieces[debrisIndex];
+          if (this.isBoundingOverlap(headBounds, debris.getBounds()) === true) {
+            this.spaceDebrisPieces.splice(debrisIndex, 1);
+            hitDebris = true;
+            clearedThisFrame += 1;
+            this.destroyedCount += 1;
+            this.addScore(90, 'destroyed');
+            this.explosions.push(new Explosion(debris.positionX, debris.positionY, { maxRadius: 56, ringAlpha: 0.28 }));
+            break;
+          }
+        }
+      }
+
       if (hitAsteroid === true) {
+        continue;
+      }
+      if (hitDebris === true) {
         continue;
       }
       if (stormStar.isExpired() === true) {
@@ -1145,6 +1214,68 @@ export class Game {
     }
 
     this.stormShootingStars = remainingStars;
+  }
+
+  // Spawns a single piece of Space Debris that flies strictly right-to-left.
+  spawnSpaceDebrisPiece() {
+    const startX = this.canvas.width + 90;
+    const speed = 560 + Math.random() * 360;
+
+    const preferPlayerLane = Math.random() < 0.6;
+    let startY;
+    if (preferPlayerLane === true) {
+      startY = this.player.positionY + (Math.random() * 2 - 1) * 160;
+    } else {
+      startY = 70 + Math.random() * Math.max(1, this.canvas.height - 140);
+    }
+    startY = Math.max(70, Math.min(this.canvas.height - 70, startY));
+
+    const size = 34 + Math.random() * 26;
+    const rotationDirection = Math.random() < 0.5 ? -1 : 1;
+    const rotationSpeedRadiansPerSecond = rotationDirection * (1.6 + Math.random() * 3.8);
+    const rotationRadians = Math.random() * Math.PI * 2;
+
+    const spritePool = this.spaceDebrisSprites;
+    const spriteImage = spritePool.length > 0 ? spritePool[Math.floor(Math.random() * spritePool.length)] : null;
+
+    const debris = new SpaceDebris(startX, startY, -speed, spriteImage, {
+      size,
+      rotationRadians,
+      rotationSpeedRadiansPerSecond
+    });
+    this.spaceDebrisPieces.push(debris);
+  }
+
+  // Updates Space Debris hazards spawned by the negative powerup.
+  updateSpaceDebris(deltaSeconds) {
+    const debrisActive = this.spaceDebrisTimer > 0;
+    if (debrisActive !== true && this.spaceDebrisPieces.length === 0) {
+      return;
+    }
+
+    if (debrisActive === true) {
+      this.spaceDebrisSpawnCooldownSeconds -= deltaSeconds;
+      if (this.spaceDebrisSpawnCooldownSeconds <= 0) {
+        const maxPiecesOnScreen = 6;
+        if (this.spaceDebrisPieces.length < maxPiecesOnScreen) {
+          this.spawnSpaceDebrisPiece();
+        }
+        const baseIntervalSeconds = 0.34;
+        const jitter = 0.85 + Math.random() * 0.65;
+        this.spaceDebrisSpawnCooldownSeconds = baseIntervalSeconds * jitter;
+      }
+    }
+
+    for (const debris of this.spaceDebrisPieces) {
+      debris.update(deltaSeconds);
+    }
+
+    this.spaceDebrisPieces = this.spaceDebrisPieces.filter((debris) => {
+      if (debris.isOffScreen(this.canvas.width) === true) {
+        return false;
+      }
+      return true;
+    });
   }
 
   // Updates foreground shooting star hazards.
@@ -1242,6 +1373,24 @@ export class Game {
       }
       return true;
     });
+
+    if (this.spaceDebrisPieces.length > 0) {
+      this.spaceDebrisPieces = this.spaceDebrisPieces.filter((debris) => {
+        const bounds = debris.getBounds();
+        const centerX = bounds.left + bounds.width * 0.5;
+        const centerY = bounds.top + bounds.height * 0.5;
+        const dx = centerX - playerX;
+        const dy = centerY - playerY;
+        const distSquared = dx * dx + dy * dy;
+        if (distSquared <= radiusSquared) {
+          this.destroyedCount += 1;
+          this.addScore(110, 'destroyed');
+          this.explosions.push(new Explosion(centerX, centerY, { maxRadius: 56, ringAlpha: 0.3 }));
+          return false;
+        }
+        return true;
+      });
+    }
   }
 
   // Computes the current orbital laser beam segment (start/end points + angle).
@@ -1293,7 +1442,7 @@ export class Game {
     if (this.orbitalLaserTimer <= 0) {
       return;
     }
-    if (this.asteroidManager.asteroids.length === 0 && this.alienManager.aliens.length === 0) {
+    if (this.asteroidManager.asteroids.length === 0 && this.alienManager.aliens.length === 0 && this.spaceDebrisPieces.length === 0) {
       return;
     }
 
@@ -1304,8 +1453,10 @@ export class Game {
 
     const beamThickness = Math.max(10, Math.min(18, Math.max(this.player.width, this.player.height) * 0.12));
     const maxAsteroidDestroysPerFrame = 8;
+    const maxDebrisDestroysPerFrame = 6;
     const maxAlienDestroysPerFrame = 3;
     let destroyedAsteroidsThisFrame = 0;
+    let destroyedDebrisThisFrame = 0;
     let destroyedAliensThisFrame = 0;
 
     const remainingAsteroids = [];
@@ -1337,6 +1488,37 @@ export class Game {
       remainingAsteroids.push(asteroid);
     }
     this.asteroidManager.asteroids = remainingAsteroids;
+
+    if (this.spaceDebrisPieces.length > 0) {
+      const remainingDebris = [];
+      for (const debris of this.spaceDebrisPieces) {
+        if (destroyedDebrisThisFrame >= maxDebrisDestroysPerFrame) {
+          remainingDebris.push(debris);
+          continue;
+        }
+        const bounds = debris.getBounds();
+        const centerX = bounds.left + bounds.width * 0.5;
+        const centerY = bounds.top + bounds.height * 0.5;
+        const radius = Math.max(bounds.width, bounds.height) * 0.5;
+        const distance = this.getDistancePointToSegment(
+          centerX,
+          centerY,
+          beamSegment.startX,
+          beamSegment.startY,
+          beamSegment.endX,
+          beamSegment.endY
+        );
+        if (distance <= radius + beamThickness) {
+          destroyedDebrisThisFrame += 1;
+          this.destroyedCount += 1;
+          this.addScore(110, 'destroyed');
+          this.explosions.push(new Explosion(debris.positionX, debris.positionY, { maxRadius: 60, ringAlpha: 0.35 }));
+          continue;
+        }
+        remainingDebris.push(debris);
+      }
+      this.spaceDebrisPieces = remainingDebris;
+    }
 
     if (this.alienManager.aliens.length === 0) {
       return;
@@ -1445,6 +1627,20 @@ export class Game {
       if (distanceX < bestDistanceX) {
         bestDistanceX = distanceX;
         desiredTargetY = asteroid.positionY;
+      }
+    }
+
+    for (const debris of this.spaceDebrisPieces) {
+      const distanceX = debris.positionX - this.allyAlien.positionX;
+      if (distanceX <= 0) {
+        continue;
+      }
+      if (distanceX > maxScanDistance) {
+        continue;
+      }
+      if (distanceX < bestDistanceX) {
+        bestDistanceX = distanceX;
+        desiredTargetY = debris.positionY;
       }
     }
 
@@ -1702,6 +1898,7 @@ export class Game {
     this.powerUpManager.draw(this.context);
     this.asteroidManager.draw(this.context);
     this.alienManager.draw(this.context);
+    this.drawSpaceDebris();
     this.drawAllyAlien();
     this.drawBullets();
     this.drawMissiles();
@@ -1744,6 +1941,16 @@ export class Game {
   drawMissiles() {
     for (const missile of this.missiles) {
       missile.draw(this.context);
+    }
+  }
+
+  // Draws active Space Debris hazards.
+  drawSpaceDebris() {
+    if (this.spaceDebrisPieces.length === 0) {
+      return;
+    }
+    for (const debris of this.spaceDebrisPieces) {
+      debris.draw(this.context);
     }
   }
 
@@ -1852,7 +2059,8 @@ export class Game {
       { key: 'solarFlare', seconds: this.solarFlareTimer },
       { key: 'wave', seconds: this.waveTimer },
       { key: 'asteroidSplitter', seconds: this.asteroidSplitterTimer },
-      { key: 'spaceDust', seconds: this.spaceDustTimer }
+      { key: 'spaceDust', seconds: this.spaceDustTimer },
+      { key: 'spaceDebris', seconds: this.spaceDebrisTimer }
     ].filter((entry) => entry.seconds > 0);
 
     const iconMap = this.powerUpManager?.iconMap;
@@ -2128,6 +2336,7 @@ export class Game {
   // Checks for collisions between player, asteroids, and power-ups.
   detectCollisions() {
     this.detectPlayerAsteroidCollision();
+    this.detectPlayerSpaceDebrisCollision();
     this.detectPlayerPowerUpCollision();
     this.detectPlayerAlienCollision();
     this.detectPlayerLaserCollision();
@@ -2151,6 +2360,33 @@ export class Game {
         } else {
           this.handleHit();
         }
+        return;
+      }
+    }
+  }
+
+  // Handles collisions between the player and Space Debris hazards.
+  detectPlayerSpaceDebrisCollision() {
+    const barrierActive = this.cloakTimer > 0;
+    if (this.invulnerabilitySeconds > 0 && barrierActive !== true) {
+      return;
+    }
+    if (this.spaceDebrisPieces.length === 0) {
+      return;
+    }
+
+    const playerBounds = this.player.getBounds();
+    for (let debrisIndex = this.spaceDebrisPieces.length - 1; debrisIndex >= 0; debrisIndex -= 1) {
+      const debris = this.spaceDebrisPieces[debrisIndex];
+      if (this.isBoundingOverlap(playerBounds, debris.getBounds()) === true) {
+        this.spaceDebrisPieces.splice(debrisIndex, 1);
+        if (barrierActive === true) {
+          this.handleBarrierSpaceDebrisDetonation(debris);
+          return;
+        }
+        this.explosions.push(new Explosion(debris.positionX, debris.positionY, { maxRadius: 70, ringAlpha: 0.45 }));
+        this.startCameraShake(10, 0.22);
+        this.handleHit();
         return;
       }
     }
@@ -2264,6 +2500,25 @@ export class Game {
       })
     );
     this.startCameraShake(10, 0.22);
+    this.updateHud();
+  }
+
+  // Handles an explosive barrier detonation against space debris (scores as "barrier" points).
+  handleBarrierSpaceDebrisDetonation(debris) {
+    this.phasedCount += 1;
+    this.addScore(65, 'phased');
+    this.explosions.push(
+      new Explosion(debris.positionX, debris.positionY, {
+        maxRadius: 66,
+        lifeSeconds: 0.44,
+        ringAlpha: 0.42,
+        ringLineWidth: 4,
+        coreColor: 'rgba(255, 255, 255, 0.95)',
+        edgeColor: 'rgba(255, 107, 107, 0)',
+        ringColor: 'rgba(147, 197, 253, 0.9)'
+      })
+    );
+    this.startCameraShake(9, 0.2);
     this.updateHud();
   }
 
@@ -2456,6 +2711,15 @@ export class Game {
       return;
     }
 
+    if (powerUp.type === 'spaceDebris') {
+      this.spaceDebrisTimer = powerUp.config.durationSeconds;
+      this.durationLookup.spaceDebris = powerUp.config.durationSeconds;
+      this.spaceDebrisSpawnCooldownSeconds = 0;
+      this.updateStatus('Space debris inbound! Satellite fragments sweep across the screen.');
+      this.updateHud();
+      return;
+    }
+
     if (powerUp.type === 'blackHole') {
       this.blackHoleTimer = powerUp.config.durationSeconds;
       this.durationLookup.blackHole = powerUp.config.durationSeconds;
@@ -2568,6 +2832,7 @@ export class Game {
       missileBarrage: this.durationLookup.missileBarrage > 0 ? this.missileBarrageTimer / this.durationLookup.missileBarrage : 0,
       asteroidSplitter: this.durationLookup.asteroidSplitter > 0 ? this.asteroidSplitterTimer / this.durationLookup.asteroidSplitter : 0,
       spaceDust: this.durationLookup.spaceDust > 0 ? this.spaceDustTimer / this.durationLookup.spaceDust : 0,
+      spaceDebris: this.durationLookup.spaceDebris > 0 ? this.spaceDebrisTimer / this.durationLookup.spaceDebris : 0,
       multiplier: this.durationLookup.multiplier > 0 ? this.multiplierTimer / this.durationLookup.multiplier : 0,
       blackHole: this.durationLookup.blackHole > 0 ? this.blackHoleTimer / this.durationLookup.blackHole : 0,
       solarFlare: this.durationLookup.solarFlare > 0 ? this.solarFlareTimer / this.durationLookup.solarFlare : 0,

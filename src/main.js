@@ -1,5 +1,5 @@
 import { Game } from './core/game.js';
-import { loadSpacemanSprites, loadAsteroidSprites, loadAlienSprites, loadPowerUpIcons } from './core/assets.js';
+import { loadSpacemanSprites, loadAsteroidSprites, loadAlienSprites, loadPowerUpIcons, loadSpaceDebrisSprites } from './core/assets.js';
 
 function ensureElement(id) {
   const existing = document.getElementById(id);
@@ -36,6 +36,7 @@ const runSetupStartButton = document.getElementById('runSetupStartButton');
 const runSetupInstructionsButton = document.getElementById('runSetupInstructionsButton');
 const runSetupTestModeButton = document.getElementById('runSetupTestModeButton');
 const runSetupDeactivateTestModeButton = document.getElementById('runSetupDeactivateTestModeButton');
+const testModeResetSlidersButton = document.getElementById('testModeResetSlidersButton');
 const testAsteroidSpeedMultiplierSlider = document.getElementById('testAsteroidSpeedMultiplier');
 const testAsteroidSizeMultiplierSlider = document.getElementById('testAsteroidSizeMultiplier');
 const testAsteroidSpawnRateMultiplierSlider = document.getElementById('testAsteroidSpawnRateMultiplier');
@@ -49,6 +50,7 @@ const startOverlay = document.getElementById('startOverlay');
 const startPlayButton = document.getElementById('startPlayButton');
 const startInstructionsButton = document.getElementById('startInstructionsButton');
 const startTestModeButton = document.getElementById('startTestModeButton');
+const startDeactivateTestModeButton = document.getElementById('startDeactivateTestModeButton');
 const pauseOverlay = document.getElementById('pauseOverlay');
 const pauseResumeButton = document.getElementById('pauseResumeButton');
 let instructionsOpenedFromStart = false;
@@ -307,6 +309,9 @@ function updateTestModeButtonState(enabled) {
       startTestModeButton.classList.remove('test-enabled');
     }
   }
+  if (startDeactivateTestModeButton !== null) {
+    startDeactivateTestModeButton.style.display = enabled === true ? 'inline-flex' : 'none';
+  }
   if (runSetupTestModeButton !== null) {
     if (enabled === true) {
       runSetupTestModeButton.classList.add('test-enabled');
@@ -362,6 +367,11 @@ function updateTestModeUiInteractivity(game) {
     testModeEnabledCheckbox.disabled = isLocked === true;
   }
 
+  if (testModeResetSlidersButton !== null) {
+    testModeResetSlidersButton.disabled = isLocked === true;
+    testModeResetSlidersButton.title = isLocked === true ? 'Locked during an active run.' : '';
+  }
+
   if (testModeInfiniteLivesCheckbox !== null) {
     testModeInfiniteLivesCheckbox.disabled = disableSecondaryControls === true;
   }
@@ -392,6 +402,24 @@ function persistAndApplyTestModeConfig(game) {
     game.applyTestModeConfig(config);
   }
   updateTestModeUiInteractivity(game);
+}
+
+// Resets the test mode tuning sliders back to their default 1.00× values.
+function resetTestModeTuningSliders(game) {
+  if (testAsteroidSpeedMultiplierSlider !== null) {
+    testAsteroidSpeedMultiplierSlider.value = '1';
+  }
+  if (testAsteroidSizeMultiplierSlider !== null) {
+    testAsteroidSizeMultiplierSlider.value = '1';
+  }
+  if (testAsteroidSpawnRateMultiplierSlider !== null) {
+    testAsteroidSpawnRateMultiplierSlider.value = '1';
+  }
+  if (testPowerupSpawnRateMultiplierSlider !== null) {
+    testPowerupSpawnRateMultiplierSlider.value = '1';
+  }
+
+  persistAndApplyTestModeConfig(game);
 }
 
 function setupInfoToggles(game) {
@@ -554,6 +582,12 @@ function setupTestModeUI(game) {
     });
   }
 
+  if (testModeResetSlidersButton !== null) {
+    testModeResetSlidersButton.addEventListener('click', () => {
+      resetTestModeTuningSliders(game);
+    });
+  }
+
   // initialize state from stored config on load
   const initialConfig = loadTestModeConfig();
   updateTestModeButtonState(initialConfig.enabled === true);
@@ -641,6 +675,18 @@ function setupStartOverlay(game) {
       testModeOpenedFromStart = true;
       hideStart();
       showTestMode();
+    });
+  }
+  if (startDeactivateTestModeButton !== null) {
+    startDeactivateTestModeButton.addEventListener('click', () => {
+      if (testModeEnabledCheckbox === null) {
+        return;
+      }
+      if (testModeEnabledCheckbox.checked !== true) {
+        return;
+      }
+      testModeEnabledCheckbox.checked = false;
+      persistAndApplyTestModeConfig(game);
     });
   }
   document.addEventListener('keydown', (event) => {
@@ -759,11 +805,12 @@ function setupTapToThrust(game) {
 
 // Bootstraps the game once the spaceman sprite is loaded.
 async function bootstrapGame() {
-  const [spacemanSprites, asteroidSprites, alienSprites, powerUpIcons] = await Promise.all([
+  const [spacemanSprites, asteroidSprites, alienSprites, powerUpIcons, spaceDebrisSprites] = await Promise.all([
     loadSpacemanSprites(),
     loadAsteroidSprites(),
     loadAlienSprites(),
-    loadPowerUpIcons()
+    loadPowerUpIcons(),
+    loadSpaceDebrisSprites()
   ]);
   const hudElements = buildHudElements();
   const drawingContext = canvasElement.getContext('2d');
@@ -771,6 +818,7 @@ async function bootstrapGame() {
     spacemanSprites,
     asteroidSprites,
     alienSprites,
+    spaceDebrisSprites,
     powerUpIcons,
     summaryOverlay: summaryOverlayElement,
     summaryFields

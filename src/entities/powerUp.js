@@ -13,6 +13,7 @@ const powerUpConfigs = {
   missileBarrage: { color: '#93c5fd', label: 'MB', durationSeconds: 6 },
   asteroidSplitter: { color: '#67f4c1', label: 'AS', durationSeconds: 8, isNegative: true },
   spaceDust: { color: '#fbbf24', label: 'D', durationSeconds: 6, isNegative: true },
+  spaceDebris: { color: '#94a3b8', label: 'SD', durationSeconds: 7, isNegative: true },
   multiplier: { color: '#ff9f45', label: 'Mx', durationSeconds: 10 },
   blackHole: { color: '#3f2e5c', label: 'BH', durationSeconds: 7, isNegative: true },
   solarFlare: { color: '#ffb347', label: 'SF', durationSeconds: 7, isNegative: true },
@@ -181,14 +182,16 @@ export function getRandomPowerUpType() {
     }
     return 'missileBarrage';
   }
-  // Negative pool: original weighted distribution + asteroid splitter.
-  // - asteroidSplitter: 8% of negatives (~4% overall)
+  // Negative pool: original weighted distribution + specials.
+  // - asteroidSplitter: 8% of negatives
+  // - spaceDebris: 8% of negatives
   const negativeWeight = Math.random();
   const splitterShare = 0.08;
-  const remainingShare = 1 - splitterShare;
-  const blackHoleCutoff = 0.35 * remainingShare;
-  const solarFlareCutoff = (0.35 + 0.25) * remainingShare;
-  const waveCutoff = (0.35 + 0.25 + 0.22) * remainingShare;
+  const debrisShare = 0.08;
+  const remainingShare = 1 - splitterShare - debrisShare;
+  const blackHoleCutoff = 0.32 * remainingShare;
+  const solarFlareCutoff = (0.32 + 0.23) * remainingShare;
+  const waveCutoff = (0.32 + 0.23 + 0.20) * remainingShare;
   const spaceDustCutoff = remainingShare;
 
   if (negativeWeight < blackHoleCutoff) {
@@ -202,6 +205,10 @@ export function getRandomPowerUpType() {
   }
   if (negativeWeight < spaceDustCutoff) {
     return 'spaceDust';
+  }
+  const specialWeight = negativeWeight - remainingShare;
+  if (specialWeight < debrisShare) {
+    return 'spaceDebris';
   }
   return 'asteroidSplitter';
 }

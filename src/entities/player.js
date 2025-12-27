@@ -454,6 +454,8 @@ export class Player {
       seekerMissiles: '#a78bfa',
       missileBarrage: '#93c5fd',
       asteroidSplitter: '#67f4c1',
+      spaceDust: '#fbbf24',
+      spaceDebris: '#93c5fd',
       multiplier: '#ff9f45',
       blackHole: '#ff6b6b',
       solarFlare: '#ffb347',

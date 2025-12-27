@@ -460,9 +460,9 @@ body {
 
 .run-setup-deactivate-button {
   display: none;
-  padding: 10px 12px;
-  font-size: 12px;
-  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   white-space: nowrap;
 }
 
@@ -492,10 +492,12 @@ body {
   flex: 0 0 auto;
 }
 
-.start-actions .run-setup-deactivate-button {
-  min-height: 36px;
-  padding: 8px 10px;
-  font-size: 12px;
+.start-actions .run-setup-testmode-row #startTestModeButton {
+  flex: 1 1 220px;
+}
+
+.start-actions .run-setup-testmode-row #startDeactivateTestModeButton {
+  flex: 0 0 auto;
 }
 
 .info-grid {
@@ -895,5 +897,13 @@ body {
   display: flex;
   justify-content: flex-end;
   margin-top: 12px;
+  gap: 10px;
+}
+
+.testmode-reset-button {
+  padding: 8px 10px;
+  font-size: 12px;
+  min-height: 36px;
+  white-space: nowrap;
 }
 

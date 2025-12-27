@@ -67,6 +67,7 @@
         <div class="info-grid power-grid">
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/splitter.svg" alt="Asteroid splitter" /><div>Asteroid Splitter</div><span>Asteroids shatter into smaller ones, bonus points</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/spacedust.svg" alt="Space dust" /><div>Space Dust</div><span>Obscures vision, bonus points</span></div>
+          <div class="power-tile"><img class="summary-icon" src="./assets/powerups/spacedebris.svg" alt="Space debris" /><div>Space Debris</div><span>Satellite fragments sweep in, bonus points</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/blackhole.svg" alt="Black hole" /><div>Black Hole</div><span>Faster hazards, bonus points</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/solarflare.svg" alt="Solar flare" /><div>Solar Flare</div><span>Larger hazards, bonus points</span></div>
           <div class="power-tile"><img class="summary-icon" src="./assets/powerups/wave.svg" alt="Wave" /><div>Wave</div><span>Bobbing hazards, bonus points</span></div>
@@ -96,7 +97,10 @@
       <div class="start-actions">
         <button id="startPlayButton" class="summary-button">Start</button>
         <button id="startInstructionsButton" class="info-button ghost">View Instructions</button>
-        <button id="startTestModeButton" class="info-button ghost">Test Mode</button>
+        <div class="run-setup-testmode-row">
+          <button id="startTestModeButton" class="info-button ghost" type="button">Test Mode</button>
+          <button id="startDeactivateTestModeButton" class="info-button ghost run-setup-deactivate-button" type="button">Deactivate</button>
+        </div>
       </div>
     </div>
   </section>
@@ -169,6 +173,9 @@
           <div class="modern-text subtext">
             These sliders are multipliers on top of the normal game behavior. <strong>1.00×</strong> is the default.
           </div>
+          <div class="testmode-actions">
+            <button id="testModeResetSlidersButton" class="info-button ghost testmode-reset-button" type="button">Reset sliders to default</button>
+          </div>
           <div class="testmode-sliders">
             <div class="testmode-slider-row">
               <div class="testmode-slider-meta">
@@ -226,6 +233,7 @@
           <div class="testmode-grid">
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="asteroidSplitter" /> <img class="testmode-icon" src="./assets/powerups/splitter.svg" alt="" aria-hidden="true" /> Asteroid Splitter <span class="testmode-desc">Asteroids shatter into smaller ones</span></label>
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="spaceDust" /> <img class="testmode-icon" src="./assets/powerups/spacedust.svg" alt="" aria-hidden="true" /> Space Dust <span class="testmode-desc">Vision obscured (bonus points)</span></label>
+            <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="spaceDebris" /> <img class="testmode-icon" src="./assets/powerups/spacedebris.svg" alt="" aria-hidden="true" /> Space Debris <span class="testmode-desc">Satellite fragments sweep in (bonus points)</span></label>
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="blackHole" /> <img class="testmode-icon" src="./assets/powerups/blackhole.svg" alt="" aria-hidden="true" /> Black Hole <span class="testmode-desc">Faster hazards (bonus points)</span></label>
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="solarFlare" /> <img class="testmode-icon" src="./assets/powerups/solarflare.svg" alt="" aria-hidden="true" /> Solar Flare <span class="testmode-desc">Larger hazards (bonus points)</span></label>
             <label class="testmode-row"><input class="testmode-powerup" type="checkbox" value="wave" /> <img class="testmode-icon" src="./assets/powerups/wave.svg" alt="" aria-hidden="true" /> Wave <span class="testmode-desc">Bobbing hazards (bonus points)</span></label>

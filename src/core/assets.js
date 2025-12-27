@@ -99,6 +99,7 @@ export async function loadPowerUpIcons() {
     ['missileBarrage', '../../assets/powerups/missiles.svg'],
     ['asteroidSplitter', '../../assets/powerups/splitter.svg'],
     ['spaceDust', '../../assets/powerups/spacedust.svg'],
+    ['spaceDebris', '../../assets/powerups/spacedebris.svg'],
     ['multiplier', '../../assets/powerups/multiplier.svg'],
     ['blackHole', '../../assets/powerups/blackhole.svg'],
     ['solarFlare', '../../assets/powerups/solarflare.svg'],
@@ -109,5 +110,27 @@ export async function loadPowerUpIcons() {
     iconMap[key] = await loadImageFromSource(url);
   }
   return iconMap;
+}
+
+// Loads all space debris sprite variants (satellite fragments).
+export async function loadSpaceDebrisSprites() {
+  const debrisPaths = [
+    '../../assets/debris/debris1.svg',
+    '../../assets/debris/debris2.svg',
+    '../../assets/debris/debris3.svg',
+    '../../assets/debris/debris4.svg',
+    '../../assets/debris/debris5.svg',
+    '../../assets/debris/debris6.svg',
+    '../../assets/debris/debris7.svg',
+    '../../assets/debris/debris8.svg',
+    '../../assets/debris/debris9.svg',
+    '../../assets/debris/debris10.svg'
+  ];
+  const loadPromises = debrisPaths.map((path) => {
+    const spriteUrl = new URL(path, import.meta.url).href;
+    return loadImageFromSource(spriteUrl);
+  });
+  const loadedSprites = await Promise.all(loadPromises);
+  return loadedSprites;
 }
 
