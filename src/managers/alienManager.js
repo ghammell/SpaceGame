@@ -2,10 +2,16 @@ import { Alien, Laser } from '../entities/alien.js';
 
 // Manages alien spawns and their lasers.
 export class AlienManager {
-  constructor(canvasWidth, canvasHeight, alienSprite) {
+  constructor(canvasWidth, canvasHeight, alienSprites) {
     this.canvasWidth = canvasWidth;
     this.canvasHeight = canvasHeight;
-    this.alienSprite = alienSprite;
+    if (Array.isArray(alienSprites) === true) {
+      this.alienSprites = alienSprites.filter((sprite) => sprite !== null && sprite !== undefined);
+    } else if (alienSprites !== null && alienSprites !== undefined) {
+      this.alienSprites = [alienSprites];
+    } else {
+      this.alienSprites = [];
+    }
     this.aliens = [];
     this.lasers = [];
     this.spawnTimer = 0;
@@ -59,8 +65,18 @@ export class AlienManager {
 
   // Creates and stores an alien.
   spawnAlien() {
-    const alien = new Alien(this.canvasWidth, this.canvasHeight, this.alienSprite);
+    const alienSprite = this.getRandomAlienSprite();
+    const alien = new Alien(this.canvasWidth, this.canvasHeight, alienSprite);
     this.aliens.push(alien);
+  }
+
+  // Chooses a random sprite from the available alien variants.
+  getRandomAlienSprite() {
+    if (this.alienSprites.length === 0) {
+      return null;
+    }
+    const randomIndex = Math.floor(Math.random() * this.alienSprites.length);
+    return this.alienSprites[randomIndex];
   }
 
   // Draws all aliens and lasers.

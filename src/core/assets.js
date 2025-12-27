@@ -46,7 +46,22 @@ export async function loadAsteroidSprites() {
   return loadedSprites;
 }
 
-// Loads the alien sprite.
+// Loads all alien sprite variants.
+export async function loadAlienSprites() {
+  const alienPaths = [
+    '../../assets/alien.svg',
+    '../../assets/alien2.svg',
+    '../../assets/alien3.svg'
+  ];
+  const loadPromises = alienPaths.map((path) => {
+    const spriteUrl = new URL(path, import.meta.url).href;
+    return loadImageFromSource(spriteUrl);
+  });
+  const loadedSprites = await Promise.all(loadPromises);
+  return loadedSprites;
+}
+
+// Loads a single alien sprite (legacy helper).
 export async function loadAlienSprite() {
   const spriteUrl = new URL('../../assets/alien.svg', import.meta.url).href;
   const loadedImage = await loadImageFromSource(spriteUrl);

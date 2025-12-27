@@ -1,5 +1,5 @@
 import { Game } from './core/game.js';
-import { loadSpacemanSprite, loadAsteroidSprites, loadAlienSprite, loadPowerUpIcons } from './core/assets.js';
+import { loadSpacemanSprite, loadAsteroidSprites, loadAlienSprites, loadPowerUpIcons } from './core/assets.js';
 
 function ensureElement(id) {
   const existing = document.getElementById(id);
@@ -430,10 +430,10 @@ function setupTapToThrust(game) {
 
 // Bootstraps the game once the spaceman sprite is loaded.
 async function bootstrapGame() {
-  const [spacemanImage, asteroidSprites, alienSprite, powerUpIcons] = await Promise.all([
+  const [spacemanImage, asteroidSprites, alienSprites, powerUpIcons] = await Promise.all([
     loadSpacemanSprite(),
     loadAsteroidSprites(),
-    loadAlienSprite(),
+    loadAlienSprites(),
     loadPowerUpIcons()
   ]);
   const hudElements = buildHudElements();
@@ -441,7 +441,7 @@ async function bootstrapGame() {
   const game = new Game(canvasElement, drawingContext, hudElements, {
     spacemanImage,
     asteroidSprites,
-    alienSprite,
+    alienSprites,
     powerUpIcons,
     summaryOverlay: summaryOverlayElement,
     summaryFields

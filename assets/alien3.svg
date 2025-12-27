@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="110" height="70" viewBox="0 0 110 70">
+  <defs>
+    <radialGradient id="alien3Core" cx="35%" cy="30%" r="80%">
+      <stop offset="0" stop-color="#fff1c7"/>
+      <stop offset="0.55" stop-color="#ffb347"/>
+      <stop offset="1" stop-color="#b45145"/>
+    </radialGradient>
+    <linearGradient id="alien3Ring" x1="10" y1="0" x2="100" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffde59"/>
+      <stop offset="0.55" stop-color="#ff7a59"/>
+      <stop offset="1" stop-color="#ff3b3b"/>
+    </linearGradient>
+    <filter id="alien3Shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#0b1024" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#alien3Shadow)" transform="translate(8 6)" stroke-linejoin="round" stroke-linecap="round">
+    <!-- shadow -->
+    <ellipse cx="47" cy="40" rx="30" ry="12" fill="#000000" fill-opacity="0.18" stroke="none" transform="translate(2 3)"/>
+
+    <!-- ring -->
+    <ellipse cx="47" cy="32" rx="34" ry="14" fill="none" stroke="url(#alien3Ring)" stroke-width="6"/>
+    <ellipse cx="47" cy="32" rx="34" ry="14" fill="none" stroke="#0b1024" stroke-opacity="0.25" stroke-width="2"/>
+
+    <!-- side fins -->
+    <path d="M10 34 C6 28 6 22 12 18 C16 16 22 18 24 22 C22 30 18 34 10 34 Z" fill="#2a2e35" fill-opacity="0.45" stroke="#0b1024" stroke-opacity="0.35" stroke-width="2"/>
+    <path d="M84 22 C86 18 92 16 96 18 C102 22 102 28 98 34 C90 34 86 30 84 22 Z" fill="#2a2e35" fill-opacity="0.45" stroke="#0b1024" stroke-opacity="0.35" stroke-width="2"/>
+
+    <!-- core body -->
+    <circle cx="47" cy="30" r="18" fill="url(#alien3Core)" stroke="#7a2f24" stroke-width="2.2"/>
+    <path d="M33 24 C38 18 46 16 54 18" fill="none" stroke="#ffffff" stroke-opacity="0.22" stroke-width="3"/>
+
+    <!-- eye slit -->
+    <rect x="37" y="28" width="20" height="8" rx="4" fill="#0b1024" fill-opacity="0.75" stroke="#7a2f24" stroke-width="1.6"/>
+    <path d="M40 32 L54 32" stroke="#8ff0ff" stroke-width="2.4" stroke-linecap="round" opacity="0.9"/>
+    <circle cx="46" cy="32" r="1.6" fill="#ffffff" fill-opacity="0.28" stroke="none"/>
+  </g>
+</svg>
+

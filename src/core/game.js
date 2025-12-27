@@ -26,7 +26,7 @@ export class Game {
     this.starfield = new Starfield(this.canvas.width, this.canvas.height);
     this.asteroidManager = new AsteroidManager(this.canvas.width, this.canvas.height, assets.asteroidSprites);
     this.powerUpManager = new PowerUpManager(this.canvas.width, this.canvas.height, assets.powerUpIcons);
-    this.alienManager = new AlienManager(this.canvas.width, this.canvas.height, assets.alienSprite);
+    this.alienManager = new AlienManager(this.canvas.width, this.canvas.height, assets.alienSprites);
     this.heartIcon = new Image();
     this.heartIcon.src = './assets/hud-heart.svg';
     this.scoreIcon = new Image();
